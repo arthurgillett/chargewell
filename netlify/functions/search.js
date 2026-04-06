@@ -1,5 +1,6 @@
 const GOOGLE_API_KEY    = process.env.GOOGLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const NREL_API_KEY      = process.env.NREL_API_KEY || "DEMO_KEY";
 
 const HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -34,37 +35,38 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
   }
 
-  // ── Step 2: Find DC fast chargers via Open Charge Map ─────────────────
+  // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
   try {
     const chargerPromises = routePoints.map(pt =>
-      fetch(`https://api.openchargemap.io/v3/poi/?output=json&latitude=${pt.lat}&longitude=${pt.lng}&distance=15&distanceunit=km&maxresults=5&levelid=3&compact=true&verbose=false`)
+      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=15&limit=5`)
         .then(r => r.json())
+        .then(j => j.fuel_stations || [])
         .catch(() => [])
     );
     const results = await Promise.all(chargerPromises);
     const seen = new Set();
-    results.flat().forEach(c => {
-      const id = c.ID;
+    const originLat = routeLegs[0].start_location.lat;
+    const originLng = routeLegs[0].start_location.lng;
+
+    results.flat().forEach(s => {
+      const id = s.id;
       if (!id || seen.has(id)) return;
       seen.add(id);
-      const addr = c.AddressInfo;
-      if (!addr?.Latitude || !addr?.Longitude) return;
+      if (!s.latitude || !s.longitude) return;
 
-      // Calculate distance from route origin
-      const originLat = routeLegs[0].start_location.lat;
-      const originLng = routeLegs[0].start_location.lng;
-      const distFromOrigin = haversine(originLat, originLng, addr.Latitude, addr.Longitude);
+      const distFromOrigin = haversine(originLat, originLng, s.latitude, s.longitude);
+      const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
 
       chargers.push({
         id,
-        name: addr.Title || `Charger ${id}`,
-        address: [addr.AddressLine1, addr.Town, addr.StateOrProvince, addr.Postcode].filter(Boolean).join(", "),
-        lat: addr.Latitude,
-        lng: addr.Longitude,
-        network: c.OperatorInfo?.Title || "Unknown network",
-        kw: c.Connections?.[0]?.PowerKW || 50,
-        typicalMinutes: estimateMinutes(c.Connections?.[0]?.PowerKW),
+        name: s.station_name || `Charger ${id}`,
+        address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
+        lat: s.latitude,
+        lng: s.longitude,
+        network: s.ev_network || "Unknown network",
+        kw: maxKw,
+        typicalMinutes: estimateMinutes(maxKw),
         distanceFromOriginKm: Math.round(distFromOrigin / 1000)
       });
     });
