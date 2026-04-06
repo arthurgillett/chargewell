@@ -2,6 +2,33 @@ const GOOGLE_API_KEY    = process.env.GOOGLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const NREL_API_KEY      = process.env.NREL_API_KEY || "DEMO_KEY";
 
+// Realistic highway range at 75mph (miles) — roughly 70-75% of EPA rated range
+const VEHICLE_RANGE_MI = {
+  tesla_model_y_lr: 240,
+  tesla_model_y_sr: 200,
+  tesla_model_3_lr: 260,
+  tesla_model_3_sr: 210,
+  tesla_cybertruck: 230,
+  rivian_r1t: 220,
+  rivian_r1s: 225,
+  ford_mach_e: 210,
+  ford_f150_lightning: 180,
+  chevy_equinox_ev: 245,
+  chevy_blazer_ev: 220,
+  hyundai_ioniq_5: 230,
+  hyundai_ioniq_6: 260,
+  kia_ev6: 240,
+  kia_ev9: 210,
+  bmw_ix: 250,
+  mercedes_eqs: 280,
+  vw_id4: 210,
+  porsche_taycan: 200,
+  lucid_air: 375,
+  cadillac_lyriq: 240,
+  polestar_2: 210,
+  nissan_ariya: 230,
+};
+
 const HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type",
@@ -33,6 +60,31 @@ exports.handler = async (event) => {
     routePoints = sampleRoutePoints(route, 30000);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
+  }
+
+  // ── Check if the trip is within range (arrive with 20%+ battery) ────────
+  const rangeMi = VEHICLE_RANGE_MI[vehicle] || 210;
+  const totalDistanceMi = totalDistanceMeters / 1609.344;
+  const arrivalPct = Math.round((1 - totalDistanceMi / rangeMi) * 100);
+
+  if (arrivalPct >= 20) {
+    const mi = Math.round(totalDistanceMi);
+    const messages = [
+      `Your ${vehicleName(vehicle)} eats ${mi} miles for breakfast. You'll arrive with about ${arrivalPct}% battery — skip the stop and enjoy the drive.`,
+      `${mi} miles? That's a warm-up for your ${vehicleName(vehicle)}. You'll roll in with ~${arrivalPct}% battery. Save the charging for another day.`,
+      `Good news — your ${vehicleName(vehicle)} can do this ${mi}-mile trip on a single charge. You'll arrive with roughly ${arrivalPct}% left. More time for snacks at the destination.`,
+      `No pit stop required! At ${mi} miles, your ${vehicleName(vehicle)} will arrive with about ${arrivalPct}% battery to spare. That's what we call range confidence.`,
+    ];
+    return {
+      statusCode: 200,
+      headers: HEADERS,
+      body: JSON.stringify({
+        noStopNeeded: true,
+        noStopMessage: messages[Math.floor(Math.random() * messages.length)],
+        totalDistanceMi: mi,
+        arrivalPct
+      })
+    };
   }
 
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
@@ -67,19 +119,19 @@ exports.handler = async (event) => {
         network: s.ev_network || "Unknown network",
         kw: maxKw,
         typicalMinutes: estimateMinutes(maxKw),
-        distanceFromOriginKm: Math.round(distFromOrigin / 1000)
+        distanceFromOriginMi: Math.round(distFromOrigin / 1609.344)
       });
     });
 
     // Sort by distance from origin and keep top 4
-    chargers.sort((a, b) => a.distanceFromOriginKm - b.distanceFromOriginKm);
+    chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
     chargers = chargers.slice(0, 4);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Charger search failed: ${e.message}` }) };
   }
 
   if (!chargers.length) {
-    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], totalDistanceKm: Math.round(totalDistanceMeters / 1000) }) };
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], totalDistanceMi: Math.round(totalDistanceMeters / 1609.344) }) };
   }
 
   // ── Step 3: Grade each charger (Places + Claude Haiku) ────────────────
@@ -90,7 +142,7 @@ exports.handler = async (event) => {
     headers: HEADERS,
     body: JSON.stringify({
       chargers: graded,
-      totalDistanceKm: Math.round(totalDistanceMeters / 1000)
+      totalDistanceMi: Math.round(totalDistanceMeters / 1609.344)
     })
   };
 };
@@ -171,6 +223,35 @@ function haversine(lat1, lng1, lat2, lng2) {
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function vehicleName(key) {
+  const names = {
+    tesla_model_y_lr: "Tesla Model Y Long Range",
+    tesla_model_y_sr: "Tesla Model Y",
+    tesla_model_3_lr: "Tesla Model 3 Long Range",
+    tesla_model_3_sr: "Tesla Model 3",
+    tesla_cybertruck: "Cybertruck",
+    rivian_r1t: "R1T",
+    rivian_r1s: "R1S",
+    ford_mach_e: "Mach-E",
+    ford_f150_lightning: "F-150 Lightning",
+    chevy_equinox_ev: "Equinox EV",
+    chevy_blazer_ev: "Blazer EV",
+    hyundai_ioniq_5: "Ioniq 5",
+    hyundai_ioniq_6: "Ioniq 6",
+    kia_ev6: "EV6",
+    kia_ev9: "EV9",
+    bmw_ix: "iX",
+    mercedes_eqs: "EQS",
+    vw_id4: "ID.4",
+    porsche_taycan: "Taycan",
+    lucid_air: "Lucid Air",
+    cadillac_lyriq: "Lyriq",
+    polestar_2: "Polestar 2",
+    nissan_ariya: "Ariya",
+  };
+  return names[key] || "EV";
 }
 
 function sampleRoutePoints(route, intervalMeters) {

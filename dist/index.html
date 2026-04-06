@@ -15,18 +15,20 @@ input, select, button { font-family: inherit; }
 }
 .stop-card.best { border: 1.5px solid #5DCAA5; background: #f7fdfb; }
 .stop-card.open { border-color: #5DCAA5; }
-.stop-card.minimized .card-full { display: none; }
-.stop-card.minimized .card-mini { display: flex !important; }
-.card-mini { display: none; align-items: center; justify-content: space-between; padding: 0.6rem 1.2rem; cursor: pointer; }
+.stop-card .card-full { display: none; }
+.stop-card .card-mini { display: flex; }
+.stop-card.expanded .card-full { display: block; }
+.stop-card.expanded .card-mini { display: none; }
+.card-mini { align-items: center; justify-content: space-between; padding: 0.75rem 1.2rem; cursor: pointer; }
 .card-full { padding: 1rem 1.2rem; cursor: pointer; }
 .card-body { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1); padding: 0 1.2rem; }
 .card-body.open { max-height: 600px; padding-bottom: 1rem; }
 
-.food-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; margin-right:4px; }
+.food-badge { display:inline-block; font-size:12px; padding:3px 9px; border-radius:10px; margin-right:4px; }
 .food-local { background:#E1F5EE; color:#085041; }
 .food-mid   { background:#FAEEDA; color:#633806; }
 .food-chain { background:#F1EFE8; color:#5F5E5A; }
-.amenity-label { font-size:11px; font-weight:500; letter-spacing:0.06em; color:#888780; padding:8px 0 4px; border-top:0.5px solid #e0ded8; margin-top:4px; }
+.amenity-label { font-size:12px; font-weight:500; letter-spacing:0.06em; color:#888780; padding:8px 0 4px; border-top:0.5px solid #e0ded8; margin-top:4px; }
 .bar-fill { height:4px; border-radius:2px; width:0%; transition:width 0.6s cubic-bezier(0.4,0,0.2,1); }
 .chevron { transition:transform 0.3s; color:#888780; font-size:12px; }
 .chevron.open { transform:rotate(180deg); }
@@ -43,7 +45,7 @@ input, select, button { font-family: inherit; }
 .pac-item:hover { background:#f7fdfb; }
 .pac-item-selected { background:#f7fdfb; }
 .pac-matched { color:#1D9E75; font-weight:500; }
-.search-btn { width:100%;padding:11px;font-size:14px;font-weight:500;background:#1D9E75;color:#fff;border:none;border-radius:10px;cursor:pointer; }
+.search-btn { width:100%;padding:13px;font-size:16px;font-weight:500;background:#1D9E75;color:#fff;border:none;border-radius:10px;cursor:pointer; }
 .search-btn:hover { background:#178a64; }
 .search-btn:disabled { opacity:0.6; cursor:not-allowed; }
 </style>
@@ -54,35 +56,52 @@ input, select, button { font-family: inherit; }
   <div style="margin-bottom:1.5rem;">
     <p style="font-size:11px;font-weight:500;letter-spacing:0.08em;color:#1D9E75;margin-bottom:6px;">CHARGE WELL. EAT WELL. BE WELL.</p>
     <p style="font-size:22px;font-weight:500;color:#2C2C2A;line-height:1.3;margin-bottom:4px;">Where to stop on your drive</p>
-    <p style="font-size:14px;color:#5F5E5A;">Every stop graded live — walkable spots only.</p>
+    <p style="font-size:15px;color:#5F5E5A;line-height:1.4;">Every stop graded live — walkable spots only.</p>
   </div>
 
   <div style="background:#fff;border:0.5px solid #e0ded8;border-radius:16px;padding:1rem 1.2rem;margin-bottom:1.25rem;">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div>
         <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">FROM</label>
-        <input type="text" id="inp-from" placeholder="New York, NY" autocomplete="off" style="width:100%;font-size:14px;padding:8px 10px;border-radius:8px;border:0.5px solid #e0ded8;" />
+        <input type="text" id="inp-from" placeholder="New York, NY" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
       </div>
       <div>
         <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">TO</label>
-        <input type="text" id="inp-to" placeholder="Boston, MA" autocomplete="off" style="width:100%;font-size:14px;padding:8px 10px;border-radius:8px;border:0.5px solid #e0ded8;" />
+        <input type="text" id="inp-to" placeholder="Boston, MA" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
       <div>
         <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">VEHICLE</label>
-        <select id="inp-vehicle" style="width:100%;font-size:14px;padding:8px 10px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
-          <option>Tesla Model Y</option>
-          <option>Rivian R1T</option>
-          <option>Ford Mustang Mach-E</option>
-          <option>Chevy Equinox EV</option>
-          <option>Hyundai Ioniq 5</option>
-          <option>Kia EV6</option>
+        <select id="inp-vehicle" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
+          <option value="tesla_model_y_lr">Tesla Model Y Long Range</option>
+          <option value="tesla_model_y_sr">Tesla Model Y Standard</option>
+          <option value="tesla_model_3_lr">Tesla Model 3 Long Range</option>
+          <option value="tesla_model_3_sr">Tesla Model 3 Standard</option>
+          <option value="tesla_cybertruck">Tesla Cybertruck</option>
+          <option value="rivian_r1t">Rivian R1T</option>
+          <option value="rivian_r1s">Rivian R1S</option>
+          <option value="ford_mach_e">Ford Mustang Mach-E</option>
+          <option value="ford_f150_lightning">Ford F-150 Lightning</option>
+          <option value="chevy_equinox_ev">Chevy Equinox EV</option>
+          <option value="chevy_blazer_ev">Chevy Blazer EV</option>
+          <option value="hyundai_ioniq_5">Hyundai Ioniq 5</option>
+          <option value="hyundai_ioniq_6">Hyundai Ioniq 6</option>
+          <option value="kia_ev6">Kia EV6</option>
+          <option value="kia_ev9">Kia EV9</option>
+          <option value="bmw_ix">BMW iX xDrive50</option>
+          <option value="mercedes_eqs">Mercedes EQS 450+</option>
+          <option value="vw_id4">VW ID.4</option>
+          <option value="porsche_taycan">Porsche Taycan</option>
+          <option value="lucid_air">Lucid Air Grand Touring</option>
+          <option value="cadillac_lyriq">Cadillac Lyriq</option>
+          <option value="polestar_2">Polestar 2</option>
+          <option value="nissan_ariya">Nissan Ariya</option>
         </select>
       </div>
       <div>
         <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">WITH</label>
-        <select id="inp-with" style="width:100%;font-size:14px;padding:8px 10px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
+        <select id="inp-with" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
           <option>Kids + dog</option>
           <option>Kids only</option>
           <option>Just us</option>
@@ -110,10 +129,10 @@ function animateScore(el, target) {
   requestAnimationFrame(step);
 }
 
-function timelineHTML(chargers, totalKm) {
+function timelineHTML(chargers, totalMi) {
   const stops = [
     { label: currentOrigin.split(',')[0], pct: 0, type: 'origin' },
-    ...chargers.map(c => ({ label: c.name.split(',')[0], pct: Math.min(95, Math.max(5, (c.distanceFromOriginKm||0)/totalKm*100)), type:'charge' })),
+    ...chargers.map(c => ({ label: c.name.split(',')[0], pct: Math.min(95, Math.max(5, (c.distanceFromOriginMi||0)/totalMi*100)), type:'charge' })),
     { label: currentDest.split(',')[0], pct: 100, type: 'dest' }
   ];
   const colors = { origin:'#2C2C2A', dest:'#2C2C2A', charge:'#5DCAA5' };
@@ -131,19 +150,19 @@ function timelineHTML(chargers, totalKm) {
 function stopCardHTML(c, i, isBest) {
   return '<div class="stop-card '+(isBest?'best':'')+'" id="card-'+i+'">' +
     '<div class="card-mini" onclick="toggleCard('+i+')">' +
-      '<div style="display:flex;align-items:center;gap:8px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;min-width:0;">' +
         '<div style="width:8px;height:8px;border-radius:50%;background:'+scoreColor(c.score)+';flex-shrink:0;"></div>' +
-        '<span style="font-size:13px;font-weight:500;color:#5F5E5A;">'+c.name+'</span>' +
+        '<span style="font-size:14px;font-weight:500;color:#5F5E5A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+c.name+'</span>' +
       '</div>' +
-      '<span style="font-size:11px;color:#888780;">'+scoreWord(c.score)+' &middot; '+c.score+'</span>' +
+      '<span style="font-size:13px;color:#888780;flex-shrink:0;margin-left:8px;">'+scoreWord(c.score)+' &middot; '+c.score+'</span>' +
     '</div>' +
     '<div class="card-full" onclick="toggleCard('+i+')">' +
       (isBest?'<p style="font-size:11px;font-weight:500;color:#1D9E75;margin-bottom:5px;letter-spacing:0.04em;">BEST STOP ON THIS ROUTE</p>':'') +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
         '<div style="flex:1;">' +
-          '<p style="font-size:15px;font-weight:500;color:#2C2C2A;">'+c.name+'</p>' +
-          '<p style="font-size:12px;color:#5F5E5A;margin-top:2px;">'+c.network+' &middot; '+c.kw+'kW &middot; ~'+c.typicalMinutes+' min</p>' +
-          '<p style="font-size:12px;color:#888780;margin-top:1px;">'+c.address+'</p>' +
+          '<p style="font-size:16px;font-weight:500;color:#2C2C2A;">'+c.name+'</p>' +
+          '<p style="font-size:13px;color:#5F5E5A;margin-top:3px;line-height:1.4;">'+c.network+' &middot; '+c.kw+'kW &middot; ~'+c.typicalMinutes+' min</p>' +
+          '<p style="font-size:13px;color:#888780;margin-top:2px;line-height:1.4;">'+c.address+'</p>' +
         '</div>' +
         '<div style="text-align:center;flex-shrink:0;">' +
           '<div id="snum-'+i+'" style="font-size:20px;font-weight:500;color:'+scoreColor(c.score)+';line-height:1;">0</div>' +
@@ -160,33 +179,37 @@ function stopCardHTML(c, i, isBest) {
       (c.food?'<p class="amenity-label">FOOD</p>' +
         '<div style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;margin-bottom:4px;">' +
           '<span class="food-badge food-'+(c.foodTier||'chain')+'">'+(c.foodTier==='local'?'local favorite':c.foodTier==='mid'?'regional':'chain')+'</span>' +
-          '<span style="font-size:13px;color:#2C2C2A;">'+c.food+'</span>' +
+          '<span style="font-size:14px;color:#2C2C2A;line-height:1.4;">'+c.food+'</span>' +
         '</div>':'') +
-      (c.coffee?'<p class="amenity-label">COFFEE</p><p style="font-size:13px;color:#2C2C2A;margin-bottom:4px;">'+c.coffee+'</p>':'') +
-      (c.outdoors?'<p class="amenity-label">OUTDOORS</p><p style="font-size:13px;color:#2C2C2A;margin-bottom:4px;">'+c.outdoors+'</p>':'') +
-      (c.kids?'<p class="amenity-label">FOR KIDS</p><p style="font-size:13px;color:#2C2C2A;margin-bottom:4px;">'+c.kids+'</p>':'') +
+      (c.coffee?'<p class="amenity-label">COFFEE</p><p style="font-size:14px;color:#2C2C2A;margin-bottom:4px;line-height:1.4;">'+c.coffee+'</p>':'') +
+      (c.outdoors?'<p class="amenity-label">OUTDOORS</p><p style="font-size:14px;color:#2C2C2A;margin-bottom:4px;line-height:1.4;">'+c.outdoors+'</p>':'') +
+      (c.kids?'<p class="amenity-label">FOR KIDS</p><p style="font-size:14px;color:#2C2C2A;margin-bottom:4px;line-height:1.4;">'+c.kids+'</p>':'') +
     '</div>' +
   '</div>';
 }
 
 function toggleCard(idx) {
-  const body = document.getElementById('body-'+idx);
-  const card = document.getElementById('card-'+idx);
-  const chev = document.getElementById('chev-'+idx);
-  const isOpen = body.classList.contains('open');
+  var body = document.getElementById('body-'+idx);
+  var card = document.getElementById('card-'+idx);
+  var chev = document.getElementById('chev-'+idx);
+  var isOpen = card.classList.contains('expanded');
 
+  // Collapse all cards first
   currentChargers.forEach(function(_,i) {
-    var b=document.getElementById('body-'+i);
-    var c=document.getElementById('card-'+i);
-    var ch=document.getElementById('chev-'+i);
-    if (i===idx && !isOpen) {
-      b.classList.add('open'); c.classList.add('open'); c.classList.remove('minimized'); if(ch) ch.classList.add('open');
-    } else if (i!==idx && !isOpen) {
-      b.classList.remove('open'); c.classList.remove('open'); c.classList.add('minimized'); if(ch) ch.classList.remove('open');
-    } else {
-      b.classList.remove('open'); c.classList.remove('open','minimized'); if(ch) ch.classList.remove('open');
-    }
+    var b = document.getElementById('body-'+i);
+    var c = document.getElementById('card-'+i);
+    var ch = document.getElementById('chev-'+i);
+    b.classList.remove('open');
+    c.classList.remove('expanded','open');
+    if (ch) ch.classList.remove('open');
   });
+
+  // If we're opening a new card, expand it
+  if (!isOpen) {
+    body.classList.add('open');
+    card.classList.add('expanded','open');
+    if (chev) chev.classList.add('open');
+  }
 
   selectedStop = isOpen ? null : idx;
   updateMapsLabel(isOpen ? null : currentChargers[idx]?.name);
@@ -250,8 +273,23 @@ async function runSearch() {
   btn.disabled = false;
   btn.textContent = 'Find great stops';
 
+  // Handle "no stop needed" — battery has enough range
+  if (data.noStopNeeded) {
+    document.getElementById('results-panel').innerHTML =
+      '<div style="background:#f7fdfb;border:1.5px solid #5DCAA5;border-radius:14px;padding:1.5rem 1.2rem;text-align:center;">' +
+        '<p style="font-size:28px;margin-bottom:8px;">&#9889;</p>' +
+        '<p style="font-size:18px;font-weight:500;color:#2C2C2A;margin-bottom:8px;">You\'ve got this — no charging stop needed!</p>' +
+        '<p style="font-size:15px;color:#5F5E5A;line-height:1.5;">' + data.noStopMessage + '</p>' +
+        '<button class="maps-btn" style="margin-top:12px;" onclick="openInMaps()">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+          '<span>Open route in Google Maps</span>' +
+        '</button>' +
+      '</div>';
+    return;
+  }
+
   currentChargers = data.chargers || [];
-  var totalKm = data.totalDistanceKm || 100;
+  var totalMi = data.totalDistanceMi || 100;
 
   if (!currentChargers.length) {
     showError('No EV chargers found along this route. Try a longer route or check back as charger coverage expands.');
@@ -264,8 +302,8 @@ async function runSearch() {
   document.getElementById('results-panel').innerHTML =
     '<p style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;margin-bottom:4px;">ROUTE OVERVIEW</p>' +
     '<div style="background:#fff;border:0.5px solid #e0ded8;border-radius:14px;padding:1rem 1.2rem;margin-bottom:12px;">' +
-      '<p style="font-size:13px;color:#5F5E5A;margin-bottom:8px;">' + Math.round(totalKm) + ' km &middot; ' + currentChargers.length + ' charger' + (currentChargers.length>1?'s':'') + ' found &middot; graded live</p>' +
-      timelineHTML(currentChargers, totalKm) +
+      '<p style="font-size:14px;color:#5F5E5A;margin-bottom:8px;line-height:1.4;">' + Math.round(totalMi) + ' mi &middot; ' + currentChargers.length + ' charger' + (currentChargers.length>1?'s':'') + ' found &middot; graded live</p>' +
+      timelineHTML(currentChargers, totalMi) +
     '</div>' +
     '<p style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;margin-bottom:8px;">CHARGE STOPS — best first</p>' +
     '<div id="stops-container">' +
