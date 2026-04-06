@@ -91,7 +91,7 @@ exports.handler = async (event) => {
   let chargers = [];
   try {
     const chargerPromises = routePoints.map(pt =>
-      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=15&limit=5`)
+      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=20&limit=6`)
         .then(r => r.json())
         .then(j => j.fuel_stations || [])
         .catch(() => [])
@@ -123,31 +123,144 @@ exports.handler = async (event) => {
       });
     });
 
-    // Sort by distance from origin and keep top 4
+    // Sort by distance from origin, keep up to 8 for strategy generation
     chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
-    chargers = chargers.slice(0, 4);
+    chargers = chargers.slice(0, 8);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Charger search failed: ${e.message}` }) };
   }
 
   if (!chargers.length) {
-    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], totalDistanceMi: Math.round(totalDistanceMeters / 1609.344) }) };
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], strategies: [], totalDistanceMi: Math.round(totalDistanceMi) }) };
   }
 
-  // ── Step 3: Grade each charger (Places + Claude Haiku) ────────────────
-  const graded = await Promise.all(chargers.map(c => gradeCharger(c, travellerType, vehicle)));
+  // ── Step 3: Detect thin coverage zones ────────────────────────────────
+  const totalMi = Math.round(totalDistanceMi);
+  const thinCoverageInfo = detectThinCoverage(chargers, totalMi);
+
+  // ── Step 4: Grade each charger + generate strategies in parallel ──────
+  const [graded, strategies] = await Promise.all([
+    Promise.all(chargers.map(c => gradeCharger(c, travellerType, vehicle, thinCoverageInfo))),
+    generateStrategies(chargers, origin, destination, totalMi, rangeMi, travellerType, vehicle)
+  ]);
+
+  // Map graded chargers back into strategies by charger id
+  const gradedById = {};
+  graded.forEach(c => { gradedById[c.id] = c; });
+
+  const strategiesWithGrades = strategies.map(s => ({
+    ...s,
+    stops: (s.stopIds || []).map(id => gradedById[id]).filter(Boolean)
+  }));
 
   return {
     statusCode: 200,
     headers: HEADERS,
     body: JSON.stringify({
       chargers: graded,
-      totalDistanceMi: Math.round(totalDistanceMeters / 1609.344)
+      strategies: strategiesWithGrades,
+      totalDistanceMi: totalMi
     })
   };
 };
 
-async function gradeCharger(charger, travellerType, vehicle) {
+// ── Thin coverage detection ──────────────────────────────────────────────
+function detectThinCoverage(chargers, totalMi) {
+  // Find gaps > 60 miles between consecutive chargers or between last charger and destination
+  const gaps = [];
+  for (let i = 0; i < chargers.length - 1; i++) {
+    const gap = chargers[i + 1].distanceFromOriginMi - chargers[i].distanceFromOriginMi;
+    if (gap > 60) {
+      gaps.push({ afterChargerId: chargers[i].id, gapMi: gap });
+    }
+  }
+  // Check gap between last charger and destination
+  if (chargers.length > 0) {
+    const lastGap = totalMi - chargers[chargers.length - 1].distanceFromOriginMi;
+    if (lastGap > 60) {
+      gaps.push({ afterChargerId: chargers[chargers.length - 1].id, gapMi: lastGap });
+    }
+  }
+  // The charger before each gap is the "last reliable" one
+  const lastReliableIds = new Set(gaps.map(g => g.afterChargerId));
+  return { gaps, lastReliableIds };
+}
+
+// ── Strategy generation via Claude Haiku ─────────────────────────────────
+async function generateStrategies(chargers, origin, destination, totalMi, rangeMi, travellerType, vehicle) {
+  const chargerSummary = chargers.map(c =>
+    `id:${c.id} "${c.name}" at mile ${c.distanceFromOriginMi}, ${c.network}, ${c.kw}kW, ~${c.typicalMinutes}min`
+  ).join("\n");
+
+  const prompt = `You are a route strategy planner for an EV road trip app.
+
+Route: ${origin} → ${destination} (${totalMi} miles)
+Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi highway range at 75mph)
+Travellers: ${travellerType || "Family"}
+
+Available DC fast chargers along route:
+${chargerSummary}
+
+Propose exactly 2-3 route strategies. Each strategy selects a subset of the chargers above.
+- One should be the recommended "comfortable" option (2 stops if route is long enough, arrive relaxed)
+- One should be the "fast" option (fewest stops possible)
+- If the route is long enough for 3+ stops, add an "explorer" option that hits the most interesting spread
+
+Rules:
+- Every strategy must be feasible: the driver starts at 100% and cannot go more than ${rangeMi} miles between charges
+- Use creative, memorable strategy names (not generic like "Option A")
+- Each strategy needs a short tagline explaining the tradeoff
+- Mark exactly one as recommended:true
+
+Reply ONLY with a JSON array:
+[
+  {
+    "name": "The Grand Tour",
+    "tagline": "Two stops, arrive relaxed",
+    "emoji": "🛣️",
+    "recommended": true,
+    "stopIds": [123, 456]
+  }
+]`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 600,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const json = await res.json();
+    const text = json.content?.[0]?.text || "[]";
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const strategies = JSON.parse(match[0]);
+      // Validate that stopIds reference real charger IDs
+      const validIds = new Set(chargers.map(c => c.id));
+      return strategies.filter(s =>
+        Array.isArray(s.stopIds) && s.stopIds.length > 0 && s.stopIds.every(id => validIds.has(id))
+      );
+    }
+  } catch (e) { /* fall through to default */ }
+
+  // Fallback: one strategy with all chargers
+  return [{
+    name: "The Route",
+    tagline: "All available stops",
+    emoji: "⚡",
+    recommended: true,
+    stopIds: chargers.slice(0, 4).map(c => c.id)
+  }];
+}
+
+async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {
   // Get nearby places within 750m
   let places = [];
   try {
@@ -171,11 +284,16 @@ Vehicle: ${vehicle || "EV"}
 Travellers: ${travellerType || "Family with kids"}
 Nearby places within 750m: ${JSON.stringify(places)}
 
+Food description rules:
+- "local" tier: describe with warmth and specificity, e.g. "Rosie's Diner — beloved local breakfast spot with homemade pies"
+- "mid" tier: brief and positive, e.g. "Panera Bread, Chipotle"
+- "chain" tier: single neutral word, e.g. "McDonald's"
+
 Reply ONLY with JSON:
 {
   "score": <0-100>,
   "scoreWord": <"Wonderful"|"Great stop"|"Decent"|"Basic">,
-  "food": "<best 1-2 walkable food options as readable string, mention if local or chain>",
+  "food": "<best 1-2 walkable food options, described per tier rules above>",
   "coffee": "<best coffee nearby or null>",
   "outdoors": "<best outdoor/park option walkable or null>",
   "kids": "<best kid-friendly option or null>",
@@ -199,14 +317,16 @@ Reply ONLY with JSON:
     });
     const json = await res.json();
     const text = json.content?.[0]?.text || "{}";
-    // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       grade = JSON.parse(jsonMatch[0]);
     }
   } catch (e) { /* use default grade */ }
 
-  return { ...charger, ...grade };
+  // Flag thin coverage
+  const isLastReliable = thinCoverageInfo.lastReliableIds.has(charger.id);
+
+  return { ...charger, ...grade, lastReliable: isLastReliable };
 }
 
 function estimateMinutes(kw) {

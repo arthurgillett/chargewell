@@ -6,9 +6,26 @@
 <title>Charge Well. Eat Well. Be Well.</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #FAFDF9; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #FAFDF9; -webkit-font-smoothing: antialiased; }
 input, select, button { font-family: inherit; }
 
+/* Strategy cards */
+.strategy-card {
+  background: #fff; border: 1px solid #e0ded8; border-radius: 14px;
+  margin-bottom: 8px; padding: 14px 16px; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.strategy-card:active { background: #f7fdfb; }
+.strategy-card.selected { border: 1.5px solid #5DCAA5; background: #f7fdfb; }
+.strategy-card.recommended { border-color: #5DCAA5; }
+.strategy-timeline { position: relative; height: 20px; margin: 12px 0 4px; }
+.strategy-timeline-line { position: absolute; top: 9px; left: 0; right: 0; height: 2px; background: #e0ded8; border-radius: 1px; }
+.strategy-timeline-dot {
+  position: absolute; top: 5px; width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid #FAFDF9; transform: translateX(-50%);
+}
+
+/* Stop cards */
 .stop-card {
   background: #fff; border: 0.5px solid #e0ded8; border-radius: 14px;
   margin-bottom: 8px; overflow: hidden; transition: border-color 0.2s;
@@ -24,37 +41,51 @@ input, select, button { font-family: inherit; }
 .card-body { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1); padding: 0 1.2rem; }
 .card-body.open { max-height: 600px; padding-bottom: 1rem; }
 
-.food-badge { display:inline-block; font-size:12px; padding:3px 9px; border-radius:10px; margin-right:4px; }
-.food-local { background:#E1F5EE; color:#085041; }
-.food-mid   { background:#FAEEDA; color:#633806; }
-.food-chain { background:#F1EFE8; color:#5F5E5A; }
-.amenity-label { font-size:12px; font-weight:500; letter-spacing:0.06em; color:#888780; padding:8px 0 4px; border-top:0.5px solid #e0ded8; margin-top:4px; }
-.bar-fill { height:4px; border-radius:2px; width:0%; transition:width 0.6s cubic-bezier(0.4,0,0.2,1); }
-.chevron { transition:transform 0.3s; color:#888780; font-size:12px; }
-.chevron.open { transform:rotate(180deg); }
-.maps-btn {
-  width:100%; margin-top:8px; padding:11px; font-size:14px; font-weight:500;
-  background:#fff; color:#0F6E56; border:1.5px solid #5DCAA5; border-radius:10px;
-  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+/* Badges */
+.food-badge { display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 10px; margin-right: 4px; }
+.food-local { background: #E1F5EE; color: #085041; }
+.food-mid   { background: #FAEEDA; color: #633806; }
+.food-chain { background: #F1EFE8; color: #5F5E5A; }
+.last-reliable-badge {
+  display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px;
+  border-radius: 10px; background: #FEF3C7; color: #92400E; margin-bottom: 8px;
 }
-.maps-btn:hover { background:#f7fdfb; }
-.spinner { width:20px; height:20px; border:2px solid #e0ded8; border-top-color:#1D9E75; border-radius:50%; animation:spin 0.8s linear infinite; display:inline-block; vertical-align:middle; margin-right:8px; }
-@keyframes spin { to { transform:rotate(360deg); } }
-.pac-container { border-radius:10px; border:0.5px solid #e0ded8; box-shadow:0 4px 16px rgba(0,0,0,0.08); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; margin-top:4px; }
-.pac-item { padding:8px 12px; font-size:13px; cursor:pointer; }
-.pac-item:hover { background:#f7fdfb; }
-.pac-item-selected { background:#f7fdfb; }
-.pac-matched { color:#1D9E75; font-weight:500; }
-.search-btn { width:100%;padding:13px;font-size:16px;font-weight:500;background:#1D9E75;color:#fff;border:none;border-radius:10px;cursor:pointer; }
-.search-btn:hover { background:#178a64; }
-.search-btn:disabled { opacity:0.6; cursor:not-allowed; }
+.last-reliable-warning {
+  font-size: 13px; color: #92400E; background: #FFFBEB; border-radius: 8px;
+  padding: 8px 12px; margin-top: 8px; line-height: 1.4;
+}
+.recommended-tag {
+  display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  padding: 2px 8px; border-radius: 8px; background: #E1F5EE; color: #085041;
+}
+
+.amenity-label { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: #888780; padding: 8px 0 4px; border-top: 0.5px solid #e0ded8; margin-top: 4px; }
+.bar-fill { height: 4px; border-radius: 2px; width: 0%; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.chevron { transition: transform 0.3s; color: #888780; font-size: 12px; }
+.chevron.open { transform: rotate(180deg); }
+.maps-btn {
+  width: 100%; margin-top: 10px; padding: 13px; font-size: 15px; font-weight: 500;
+  background: #fff; color: #0F6E56; border: 1.5px solid #5DCAA5; border-radius: 10px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.maps-btn:hover { background: #f7fdfb; }
+.spinner { width: 20px; height: 20px; border: 2px solid #e0ded8; border-top-color: #1D9E75; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.search-btn { width: 100%; padding: 13px; font-size: 16px; font-weight: 500; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+.search-btn:hover { background: #178a64; }
+.search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.pac-container { border-radius: 10px; border: 0.5px solid #e0ded8; box-shadow: 0 4px 16px rgba(0,0,0,0.08); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin-top: 4px; }
+.pac-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+.pac-item:hover { background: #f7fdfb; }
+.pac-item-selected { background: #f7fdfb; }
+.pac-matched { color: #1D9E75; font-weight: 500; }
 </style>
 </head>
 <body>
 <div style="max-width:480px;margin:0 auto;padding:1.5rem 1rem 2.5rem;">
 
   <div style="margin-bottom:1.5rem;">
-    <p style="font-size:11px;font-weight:500;letter-spacing:0.08em;color:#1D9E75;margin-bottom:6px;">CHARGE WELL. EAT WELL. BE WELL.</p>
+    <p style="font-size:11px;font-weight:600;letter-spacing:0.1em;color:#1D9E75;margin-bottom:6px;">CHARGE WELL. EAT WELL. BE WELL.</p>
     <p style="font-size:22px;font-weight:500;color:#2C2C2A;line-height:1.3;margin-bottom:4px;">Where to stop on your drive</p>
     <p style="font-size:15px;color:#5F5E5A;line-height:1.4;">Every stop graded live — walkable spots only.</p>
   </div>
@@ -117,37 +148,62 @@ input, select, button { font-family: inherit; }
 
 </div>
 <script>
-let currentChargers = [], selectedStop = null;
-let currentOrigin = '', currentDest = '';
+var currentStrategies = [], currentStops = [], selectedStrategy = null, selectedStop = null;
+var currentOrigin = '', currentDest = '', totalMi = 0;
 
 function scoreColor(s) { return s>=75?'#0F6E56':s>=50?'#854F0B':'#888780'; }
 function scoreWord(s)  { return s>=85?'Wonderful':s>=70?'Great stop':s>=55?'Decent':'Basic'; }
 
 function animateScore(el, target) {
-  let cur = 0;
-  const step = () => { cur=Math.min(cur+Math.ceil(target/18),target); el.textContent=cur; if(cur<target) requestAnimationFrame(step); };
+  var cur = 0;
+  var step = function() { cur=Math.min(cur+Math.ceil(target/18),target); el.textContent=cur; if(cur<target) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }
 
-function timelineHTML(chargers, totalMi) {
-  const stops = [
-    { label: currentOrigin.split(',')[0], pct: 0, type: 'origin' },
-    ...chargers.map(c => ({ label: c.name.split(',')[0], pct: Math.min(95, Math.max(5, (c.distanceFromOriginMi||0)/totalMi*100)), type:'charge' })),
-    { label: currentDest.split(',')[0], pct: 100, type: 'dest' }
+// ── Strategy timeline ─────────────────────────────────────────────────
+function strategyTimelineHTML(stops, total) {
+  var dots = [
+    { pct: 0, color: '#2C2C2A' },
   ];
-  const colors = { origin:'#2C2C2A', dest:'#2C2C2A', charge:'#5DCAA5' };
-  return '<div style="position:relative;height:54px;margin:0 0 16px;">' +
-    '<div style="position:absolute;top:8px;left:0;right:0;height:2px;background:#e0ded8;border-radius:1px;"></div>' +
-    stops.map(s =>
-      '<div style="position:absolute;left:'+s.pct.toFixed(1)+'%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:2;">' +
-        '<div style="width:'+(s.type==='charge'?12:10)+'px;height:'+(s.type==='charge'?12:10)+'px;border-radius:50%;background:'+colors[s.type]+';border:2px solid #FAFDF9;margin-bottom:4px;"></div>' +
-        '<div style="font-size:10px;color:'+(s.type==='charge'?'#888780':'#2C2C2A')+';font-weight:'+(s.type!=='charge'?'500':'400')+';white-space:nowrap;text-align:center;">'+s.label+'</div>' +
-      '</div>'
-    ).join('') +
+  stops.forEach(function(s) {
+    dots.push({ pct: Math.min(95, Math.max(5, (s.distanceFromOriginMi || 0) / total * 100)), color: '#5DCAA5' });
+  });
+  dots.push({ pct: 100, color: '#2C2C2A' });
+
+  return '<div class="strategy-timeline">' +
+    '<div class="strategy-timeline-line"></div>' +
+    dots.map(function(d) {
+      return '<div class="strategy-timeline-dot" style="left:'+d.pct.toFixed(1)+'%;background:'+d.color+';"></div>';
+    }).join('') +
   '</div>';
 }
 
+// ── Strategy card ─────────────────────────────────────────────────────
+function strategyCardHTML(s, i) {
+  var stopCount = s.stops ? s.stops.length : 0;
+  return '<div class="strategy-card'+(s.recommended?' recommended':'')+'" id="strat-'+i+'" onclick="selectStrategy('+i+')">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span style="font-size:18px;">'+( s.emoji || '⚡')+'</span>' +
+        '<span style="font-size:16px;font-weight:500;color:#2C2C2A;">'+s.name+'</span>' +
+      '</div>' +
+      (s.recommended ? '<span class="recommended-tag">RECOMMENDED</span>' : '') +
+    '</div>' +
+    '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:2px;">'+s.tagline+'</p>' +
+    '<p style="font-size:12px;color:#888780;">'+stopCount+' stop'+(stopCount!==1?'s':'')+'</p>' +
+    strategyTimelineHTML(s.stops || [], totalMi) +
+  '</div>';
+}
+
+// ── Stop cards ────────────────────────────────────────────────────────
 function stopCardHTML(c, i, isBest) {
+  var lastReliableHTML = c.lastReliable
+    ? '<div class="last-reliable-badge">Last reliable fast charger</div>'
+    : '';
+  var lastReliableWarning = c.lastReliable
+    ? '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>'
+    : '';
+
   return '<div class="stop-card '+(isBest?'best':'')+'" id="card-'+i+'">' +
     '<div class="card-mini" onclick="toggleCard('+i+')">' +
       '<div style="display:flex;align-items:center;gap:8px;min-width:0;">' +
@@ -157,7 +213,8 @@ function stopCardHTML(c, i, isBest) {
       '<span style="font-size:13px;color:#888780;flex-shrink:0;margin-left:8px;">'+scoreWord(c.score)+' &middot; '+c.score+'</span>' +
     '</div>' +
     '<div class="card-full" onclick="toggleCard('+i+')">' +
-      (isBest?'<p style="font-size:11px;font-weight:500;color:#1D9E75;margin-bottom:5px;letter-spacing:0.04em;">BEST STOP ON THIS ROUTE</p>':'') +
+      lastReliableHTML +
+      (isBest?'<p style="font-size:11px;font-weight:600;color:#1D9E75;margin-bottom:5px;letter-spacing:0.04em;">BEST STOP ON THIS ROUTE</p>':'') +
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
         '<div style="flex:1;">' +
           '<p style="font-size:16px;font-weight:500;color:#2C2C2A;">'+c.name+'</p>' +
@@ -173,7 +230,8 @@ function stopCardHTML(c, i, isBest) {
       '<div style="height:4px;border-radius:2px;background:#F1EFE8;">' +
         '<div class="bar-fill" id="bar-'+i+'" style="background:'+scoreColor(c.score)+';"></div>' +
       '</div>' +
-      (c.caveat?'<p style="font-size:12px;color:#854F0B;margin-top:8px;">'+c.caveat+'</p>':'') +
+      (c.caveat?'<p style="font-size:13px;color:#854F0B;margin-top:8px;line-height:1.4;">'+c.caveat+'</p>':'') +
+      lastReliableWarning +
     '</div>' +
     '<div class="card-body" id="body-'+i+'">' +
       (c.food?'<p class="amenity-label">FOOD</p>' +
@@ -188,31 +246,73 @@ function stopCardHTML(c, i, isBest) {
   '</div>';
 }
 
+function selectStrategy(idx) {
+  if (selectedStrategy === idx) return;
+  selectedStrategy = idx;
+  selectedStop = null;
+
+  // Highlight strategy card
+  currentStrategies.forEach(function(_, i) {
+    var el = document.getElementById('strat-' + i);
+    if (el) el.classList.toggle('selected', i === idx);
+  });
+
+  // Render stop cards for selected strategy
+  var strat = currentStrategies[idx];
+  var stops = strat.stops || [];
+  currentStops = stops;
+
+  // Sort by score descending
+  stops.sort(function(a, b) { return b.score - a.score; });
+
+  var container = document.getElementById('stops-container');
+  if (!stops.length) {
+    container.innerHTML = '<p style="font-size:14px;color:#888780;padding:12px 0;">No stops in this strategy.</p>';
+    return;
+  }
+
+  container.innerHTML =
+    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;margin-top:4px;">CHARGE STOPS — best first</p>' +
+    stops.map(function(c, i) { return stopCardHTML(c, i, i === 0); }).join('');
+
+  // Animate scores
+  stops.forEach(function(c, i) {
+    setTimeout(function() {
+      var snum = document.getElementById('snum-' + i);
+      var bar  = document.getElementById('bar-' + i);
+      if (snum) animateScore(snum, c.score);
+      if (bar) { bar.style.background = scoreColor(c.score); setTimeout(function() { bar.style.width = c.score + '%'; }, 30); }
+    }, i * 150);
+  });
+
+  updateMapsLabel(null);
+}
+
 function toggleCard(idx) {
-  var body = document.getElementById('body-'+idx);
-  var card = document.getElementById('card-'+idx);
-  var chev = document.getElementById('chev-'+idx);
+  var card = document.getElementById('card-' + idx);
+  var body = document.getElementById('body-' + idx);
+  var chev = document.getElementById('chev-' + idx);
   var isOpen = card.classList.contains('expanded');
 
   // Collapse all cards first
-  currentChargers.forEach(function(_,i) {
-    var b = document.getElementById('body-'+i);
-    var c = document.getElementById('card-'+i);
-    var ch = document.getElementById('chev-'+i);
-    b.classList.remove('open');
-    c.classList.remove('expanded','open');
+  currentStops.forEach(function(_, i) {
+    var b = document.getElementById('body-' + i);
+    var c = document.getElementById('card-' + i);
+    var ch = document.getElementById('chev-' + i);
+    if (b) b.classList.remove('open');
+    if (c) c.classList.remove('expanded', 'open');
     if (ch) ch.classList.remove('open');
   });
 
-  // If we're opening a new card, expand it
+  // If opening, expand this card
   if (!isOpen) {
     body.classList.add('open');
-    card.classList.add('expanded','open');
+    card.classList.add('expanded', 'open');
     if (chev) chev.classList.add('open');
   }
 
   selectedStop = isOpen ? null : idx;
-  updateMapsLabel(isOpen ? null : currentChargers[idx]?.name);
+  updateMapsLabel(isOpen ? null : currentStops[idx]?.name);
 }
 
 function updateMapsLabel(stopName) {
@@ -226,12 +326,12 @@ function openInMaps() {
   var o = encodeURIComponent(currentOrigin);
   var d = encodeURIComponent(currentDest);
   var wp;
-  if (selectedStop !== null && currentChargers[selectedStop]) {
-    wp = encodeURIComponent(currentChargers[selectedStop].address);
+  if (selectedStop !== null && currentStops[selectedStop]) {
+    wp = encodeURIComponent(currentStops[selectedStop].address);
   } else {
-    wp = currentChargers.map(function(c){ return encodeURIComponent(c.address); }).join('|');
+    wp = currentStops.map(function(c) { return encodeURIComponent(c.address); }).join('|');
   }
-  window.open('https://www.google.com/maps/dir/?api=1&origin='+o+'&destination='+d+'&waypoints='+wp+'&travelmode=driving', '_blank');
+  window.open('https://www.google.com/maps/dir/?api=1&origin=' + o + '&destination=' + d + '&waypoints=' + wp + '&travelmode=driving', '_blank');
 }
 
 async function runSearch() {
@@ -242,16 +342,18 @@ async function runSearch() {
 
   if (!currentOrigin || !currentDest) { showError('Please enter both a from and to location.'); return; }
 
+  selectedStrategy = null;
   selectedStop = null;
+  currentStops = [];
   document.getElementById('error-area').innerHTML = '';
   var btn = document.getElementById('search-btn');
   btn.disabled = true;
   btn.textContent = 'Searching\u2026';
 
   document.getElementById('results-panel').innerHTML =
-    '<div style="text-align:center;padding:2rem;color:#888780;font-size:14px;">' +
+    '<div style="text-align:center;padding:2rem;color:#888780;font-size:15px;">' +
       '<div class="spinner"></div>' +
-      'Finding chargers and grading stops\u2026 this takes about 10 seconds.' +
+      'Finding chargers and grading stops\u2026 this takes about 15 seconds.' +
     '</div>';
 
   var data;
@@ -273,7 +375,7 @@ async function runSearch() {
   btn.disabled = false;
   btn.textContent = 'Find great stops';
 
-  // Handle "no stop needed" — battery has enough range
+  // Handle "no stop needed"
   if (data.noStopNeeded) {
     document.getElementById('results-panel').innerHTML =
       '<div style="background:#f7fdfb;border:1.5px solid #5DCAA5;border-radius:14px;padding:1.5rem 1.2rem;text-align:center;">' +
@@ -288,50 +390,49 @@ async function runSearch() {
     return;
   }
 
-  currentChargers = data.chargers || [];
-  var totalMi = data.totalDistanceMi || 100;
+  currentStrategies = data.strategies || [];
+  totalMi = data.totalDistanceMi || 100;
 
-  if (!currentChargers.length) {
+  if (!currentStrategies.length && !(data.chargers || []).length) {
     showError('No EV chargers found along this route. Try a longer route or check back as charger coverage expands.');
     return;
   }
 
-  // Sort by score descending, mark best
-  currentChargers.sort(function(a,b){ return b.score - a.score; });
+  // If no strategies came back, make one from all chargers
+  if (!currentStrategies.length) {
+    currentStrategies = [{ name: 'The Route', tagline: 'All available stops', emoji: '⚡', recommended: true, stops: data.chargers || [] }];
+  }
 
-  document.getElementById('results-panel').innerHTML =
-    '<p style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;margin-bottom:4px;">ROUTE OVERVIEW</p>' +
-    '<div style="background:#fff;border:0.5px solid #e0ded8;border-radius:14px;padding:1rem 1.2rem;margin-bottom:12px;">' +
-      '<p style="font-size:14px;color:#5F5E5A;margin-bottom:8px;line-height:1.4;">' + Math.round(totalMi) + ' mi &middot; ' + currentChargers.length + ' charger' + (currentChargers.length>1?'s':'') + ' found &middot; graded live</p>' +
-      timelineHTML(currentChargers, totalMi) +
+  // Render
+  var html =
+    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:4px;">ROUTE OVERVIEW</p>' +
+    '<div style="background:#fff;border:0.5px solid #e0ded8;border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
+      '<p style="font-size:15px;color:#2C2C2A;font-weight:500;margin-bottom:2px;">' + currentOrigin.split(',')[0] + ' \u2192 ' + currentDest.split(',')[0] + '</p>' +
+      '<p style="font-size:13px;color:#888780;">' + Math.round(totalMi) + ' miles &middot; ' + currentStrategies.length + ' route option' + (currentStrategies.length !== 1 ? 's' : '') + '</p>' +
     '</div>' +
-    '<p style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;margin-bottom:8px;">CHARGE STOPS — best first</p>' +
-    '<div id="stops-container">' +
-      currentChargers.map(function(c,i){ return stopCardHTML(c, i, i===0); }).join('') +
-    '</div>' +
+    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;">CHOOSE YOUR ROUTE</p>' +
+    currentStrategies.map(function(s, i) { return strategyCardHTML(s, i); }).join('') +
+    '<div id="stops-container" style="margin-top:4px;"></div>' +
     '<button class="maps-btn" onclick="openInMaps()">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
       '<span id="maps-label">Open full route in Google Maps</span>' +
     '</button>';
 
-  // Animate scores
-  currentChargers.forEach(function(c,i) {
-    setTimeout(function() {
-      var snum = document.getElementById('snum-'+i);
-      var bar  = document.getElementById('bar-'+i);
-      if (snum) animateScore(snum, c.score);
-      if (bar) { bar.style.background = scoreColor(c.score); setTimeout(function(){ bar.style.width=c.score+'%'; }, 30); }
-    }, i * 150);
-  });
+  document.getElementById('results-panel').innerHTML = html;
+
+  // Auto-select the recommended strategy
+  var recommendedIdx = currentStrategies.findIndex(function(s) { return s.recommended; });
+  if (recommendedIdx === -1) recommendedIdx = 0;
+  selectStrategy(recommendedIdx);
 }
 
 function showError(msg) {
   document.getElementById('results-panel').innerHTML = '';
   document.getElementById('error-area').innerHTML =
-    '<div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:10px;padding:12px 14px;font-size:13px;color:#791F1F;margin-bottom:12px;">'+msg+'</div>';
+    '<div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:10px;padding:12px 14px;font-size:14px;color:#791F1F;margin-bottom:12px;line-height:1.4;">' + msg + '</div>';
 }
 
-// Load Google Maps API key from config endpoint, then init autocomplete
+// Load Google Maps API key from config endpoint
 async function loadMapsAPI() {
   try {
     var res = await fetch('/.netlify/functions/get-config');
