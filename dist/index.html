@@ -91,19 +91,16 @@ input, select, button { font-family: inherit; }
   </div>
 
   <div style="background:#fff;border:0.5px solid #e0ded8;border-radius:16px;padding:1rem 1.2rem;margin-bottom:1.25rem;">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div>
-        <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">FROM</label>
-        <input type="text" id="inp-from" placeholder="New York, NY" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">TO</label>
-        <input type="text" id="inp-to" placeholder="Boston, MA" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
-      </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">FROM</label>
+      <input type="text" id="inp-from" placeholder="New York, NY" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-      <div>
-        <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">VEHICLE</label>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">TO</label>
+      <input type="text" id="inp-to" placeholder="Boston, MA" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">VEHICLE</label>
         <select id="inp-vehicle" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
           <option value="tesla_model_y_lr">Tesla Model Y Long Range</option>
           <option value="tesla_model_y_sr">Tesla Model Y Standard</option>
@@ -129,16 +126,15 @@ input, select, button { font-family: inherit; }
           <option value="polestar_2">Polestar 2</option>
           <option value="nissan_ariya">Nissan Ariya</option>
         </select>
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">WITH</label>
-        <select id="inp-with" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
-          <option>Kids + dog</option>
-          <option>Kids only</option>
-          <option>Just us</option>
-          <option>Dog only</option>
-        </select>
-      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">WITH</label>
+      <select id="inp-with" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
+        <option>Kids + dog</option>
+        <option>Kids only</option>
+        <option>Just us</option>
+        <option>Dog only</option>
+      </select>
     </div>
     <button id="search-btn" class="search-btn" onclick="runSearch()">Find great stops</button>
   </div>
