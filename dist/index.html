@@ -88,6 +88,24 @@ input, select, button { font-family: inherit; }
     <p style="font-size:11px;font-weight:600;letter-spacing:0.1em;color:#1D9E75;margin-bottom:6px;">CHARGE WELL. EAT WELL. BE WELL.</p>
     <p style="font-size:22px;font-weight:500;color:#2C2C2A;line-height:1.3;margin-bottom:4px;">Where to stop on your drive</p>
     <p style="font-size:15px;color:#5F5E5A;line-height:1.4;">Every stop graded live — walkable spots only.</p>
+    <p style="font-size:13px;color:#888780;line-height:1.5;margin-top:8px;">We don't just find chargers. We find the ones where the wait actually feels good — local food, green space, things for the kids — all within walking distance.</p>
+  </div>
+
+  <div id="how-it-works" style="display:flex;align-items:flex-start;gap:6px;margin-bottom:14px;">
+    <div style="flex:1;text-align:center;">
+      <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">1</div>
+      <p style="font-size:12px;color:#888780;line-height:1.3;">Enter your route</p>
+    </div>
+    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">→</div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">2</div>
+      <p style="font-size:12px;color:#888780;line-height:1.3;">We find fast chargers</p>
+    </div>
+    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">→</div>
+    <div style="flex:1;text-align:center;">
+      <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">3</div>
+      <p style="font-size:12px;color:#888780;line-height:1.3;">Claude grades each stop</p>
+    </div>
   </div>
 
   <div style="background:#fff;border:0.5px solid #e0ded8;border-radius:16px;padding:1rem 1.2rem;margin-bottom:1.25rem;">
@@ -128,7 +146,8 @@ input, select, button { font-family: inherit; }
         </select>
     </div>
     <div style="margin-bottom:12px;">
-      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">WITH</label>
+      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:3px;">WITH</label>
+      <p style="font-size:11px;color:#b0afa8;margin-bottom:5px;">Affects how stops are scored for kids, dogs, outdoor space</p>
       <select id="inp-with" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
         <option>Kids + dog</option>
         <option>Kids only</option>
@@ -341,6 +360,8 @@ async function runSearch() {
   selectedStrategy = null;
   selectedStop = null;
   currentStops = [];
+  var hiw = document.getElementById('how-it-works');
+  if (hiw) hiw.style.display = 'none';
   document.getElementById('error-area').innerHTML = '';
   var btn = document.getElementById('search-btn');
   btn.disabled = true;
