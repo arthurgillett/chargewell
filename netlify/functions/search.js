@@ -659,25 +659,51 @@ async function resolveLocation(input) {
 }
 
 function sampleRoutePoints(route, intervalMeters) {
-  const points = [];
-  let accumulated = 0;
-  let totalDist = 0;
-  let totalTime = 0;
+  // First, collect all step endpoints with cumulative distance/time
+  const allSteps = [];
+  let totalDist = 0, totalTime = 0;
   for (const leg of route.legs) {
     for (const step of leg.steps) {
       totalDist += step.distance.value;
       totalTime += step.duration.value;
-      accumulated += step.distance.value;
-      if (accumulated >= intervalMeters) {
-        points.push({
-          lat: step.end_location.lat,
-          lng: step.end_location.lng,
-          routeDistMeters: totalDist,
-          routeTimeSec: totalTime
-        });
-        accumulated = 0;
-      }
+      allSteps.push({
+        lat: step.end_location.lat,
+        lng: step.end_location.lng,
+        routeDistMeters: totalDist,
+        routeTimeSec: totalTime
+      });
     }
   }
+
+  if (!allSteps.length) return [];
+
+  // Sample at the desired interval, but if a step spans multiple intervals,
+  // interpolate points along it rather than skipping
+  const points = [];
+  let nextThreshold = intervalMeters;
+
+  for (let i = 0; i < allSteps.length; i++) {
+    while (allSteps[i].routeDistMeters >= nextThreshold) {
+      // Find the fraction along this step where the threshold falls
+      const prevDist = i > 0 ? allSteps[i-1].routeDistMeters : 0;
+      const stepDist = allSteps[i].routeDistMeters - prevDist;
+      const fraction = stepDist > 0 ? (nextThreshold - prevDist) / stepDist : 1;
+
+      const prevLat = i > 0 ? allSteps[i-1].lat : allSteps[i].lat;
+      const prevLng = i > 0 ? allSteps[i-1].lng : allSteps[i].lng;
+      const prevTime = i > 0 ? allSteps[i-1].routeTimeSec : 0;
+      const stepTime = allSteps[i].routeTimeSec - prevTime;
+
+      points.push({
+        lat: prevLat + (allSteps[i].lat - prevLat) * fraction,
+        lng: prevLng + (allSteps[i].lng - prevLng) * fraction,
+        routeDistMeters: nextThreshold,
+        routeTimeSec: Math.round(prevTime + stepTime * fraction)
+      });
+
+      nextThreshold += intervalMeters;
+    }
+  }
+
   return points;
 }
