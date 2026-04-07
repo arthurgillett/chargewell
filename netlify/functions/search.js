@@ -241,7 +241,7 @@ exports.handler = async (event) => {
       totalDistanceMi: totalMi,
       totalDriveMinutes,
       polyline: routePolyline,
-      _debug: { rawStrategies: strategies.length, withGrades: strategiesWithGrades.length, chargerCount: chargers.length }
+      _debug: { rawStrategies: strategies.length, withGrades: strategiesWithGrades.length, chargerCount: chargers.length, haiku: generateStrategies._lastResponse || null }
     })
   };
 };
@@ -402,9 +402,9 @@ Reply ONLY with a JSON array:
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, messages: [{ role: "user", content: prompt }] })
     });
     const json = await res.json();
-    console.log('Haiku strategy response:', JSON.stringify(json).slice(0, 500));
     const text = json.content?.[0]?.text || "[]";
-    console.log('Haiku text:', text.slice(0, 300));
+    // Store for debug
+    generateStrategies._lastResponse = { type: json.type, error: json.error, textPreview: text.slice(0, 200) };
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       const strategies = JSON.parse(match[0]);
@@ -448,9 +448,11 @@ Reply ONLY with a JSON array:
       const bestEffort = strategies.filter(s => Array.isArray(s.stopIds) && s.stopIds.length > 0 && s.stopIds.every(id => validIds.has(id)));
       if (bestEffort.length > 0) return bestEffort;
     }
-  } catch (e) { /* fall through */ }
+  } catch (e) {
+    console.log('Strategy generation error:', e.message, e.stack);
+  }
 
-  // Fallback: build a feasible route from chargers
+  // Fallback: build a feasible route from available chargers
   const fallbackStops = [];
   let prevMi = 0, maxLeg = rangeMi;
   for (const c of chargers) {
