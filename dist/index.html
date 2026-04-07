@@ -2,575 +2,731 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Charge Well. Eat Well. Be Well.</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #FAFDF9; -webkit-font-smoothing: antialiased; }
-input, select, button { font-family: inherit; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;-webkit-font-smoothing:antialiased;color:#2C2C2A;overflow-x:hidden}
+input,select,button{font-family:inherit}
 
-/* Strategy cards */
-.strategy-card {
-  background: #fff; border: 1px solid #e0ded8; border-radius: 14px;
-  margin-bottom: 8px; padding: 14px 16px; cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.strategy-card:active { background: #f7fdfb; }
-.strategy-card.selected { border: 1.5px solid #5DCAA5; background: #f7fdfb; }
-.strategy-card.recommended { border-color: #5DCAA5; }
-.route-svg { display: block; margin: 10px auto 4px; }
-.timing-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-.timing-pill {
-  font-size: 11px; padding: 3px 8px; border-radius: 8px; white-space: nowrap;
-}
-.timing-drive { background: #F1EFE8; color: #5F5E5A; }
-.timing-charge { background: #E1F5EE; color: #085041; }
-.timing-total { background: #2C2C2A; color: #fff; font-weight: 500; }
+/* ── App shell ─────────────────────────────────────────── */
+.app{max-width:480px;margin:0 auto;min-height:100dvh;position:relative;overflow:hidden}
+.screen{position:absolute;top:0;left:0;right:0;bottom:0;background:#fff;overflow-y:auto;padding-bottom:100px;
+  opacity:0;transform:scale(0.96);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
+.screen.active{opacity:1;transform:scale(1);pointer-events:auto;position:relative}
+.screen.slide-right{opacity:0;transform:translateX(100%)}
+.screen.slide-left{opacity:0;transform:translateX(-100%)}
 
-/* Stop cards */
-.stop-card {
-  background: #fff; border: 0.5px solid #e0ded8; border-radius: 14px;
-  margin-bottom: 8px; overflow: hidden; transition: border-color 0.2s;
-}
-.stop-card.best { border: 1.5px solid #5DCAA5; background: #f7fdfb; }
-.stop-card.open { border-color: #5DCAA5; }
-.stop-card .card-full { display: none; }
-.stop-card .card-mini { display: flex; }
-.stop-card.expanded .card-full { display: block; }
-.stop-card.expanded .card-mini { display: none; }
-.card-mini { align-items: center; justify-content: space-between; padding: 0.75rem 1.2rem; cursor: pointer; }
-.card-full { padding: 1rem 1.2rem; cursor: pointer; }
-.card-body { max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1); padding: 0 1.2rem; }
-.card-body.open { max-height: 600px; padding-bottom: 1rem; }
+/* ── Progress bar ──────────────────────────────────────── */
+.progress-bar{display:flex;gap:4px;padding:0 20px;margin-bottom:8px}
+.progress-seg{flex:1;height:3px;border-radius:2px;background:#EDECE8;transition:background .3s}
+.progress-seg.done{background:#1D9E75}
+.progress-seg.current{background:#5DCAA5}
 
-/* Badges */
-.food-badge { display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 10px; margin-right: 4px; }
-.food-local { background: #E1F5EE; color: #085041; }
-.food-mid   { background: #FAEEDA; color: #633806; }
-.food-chain { background: #F1EFE8; color: #5F5E5A; }
-.last-reliable-badge {
-  display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px;
-  border-radius: 10px; background: #FEF3C7; color: #92400E; margin-bottom: 8px;
-}
-.last-reliable-warning {
-  font-size: 13px; color: #92400E; background: #FFFBEB; border-radius: 8px;
-  padding: 8px 12px; margin-top: 8px; line-height: 1.4;
-}
-.recommended-tag {
-  display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-  padding: 2px 8px; border-radius: 8px; background: #E1F5EE; color: #085041;
-}
+/* ── Header ────────────────────────────────────────────── */
+.header{padding:16px 20px 0}
+.brand{font-size:10px;font-weight:600;letter-spacing:.12em;color:#1D9E75;margin-bottom:4px}
+.title{font-size:24px;font-weight:600;color:#2C2C2A;line-height:1.2;margin-bottom:4px}
+.subtitle{font-size:15px;color:#5F5E5A;line-height:1.4}
 
-/* Leg breakdown */
-.leg-breakdown { margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #e0ded8; }
-.leg-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; color: #5F5E5A; }
-.leg-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 11px; }
-.leg-time { color: #2C2C2A; font-weight: 500; flex-shrink: 0; }
+/* ── How it works strip ────────────────────────────────── */
+.hiw-strip{display:flex;align-items:center;gap:4px;padding:10px 20px;margin:12px 0 4px}
+.hiw-step{display:flex;align-items:center;gap:5px;flex:1}
+.hiw-num{width:18px;height:18px;border-radius:50%;background:#E8F7F1;color:#1D9E75;font-size:10px;font-weight:600;line-height:18px;text-align:center;flex-shrink:0}
+.hiw-text{font-size:11px;color:#888780;line-height:1.2}
+.hiw-arrow{color:#d4d3ce;font-size:10px;flex-shrink:0}
 
-.amenity-label { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: #888780; padding: 8px 0 4px; border-top: 0.5px solid #e0ded8; margin-top: 4px; }
-.bar-fill { height: 4px; border-radius: 2px; width: 0%; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
-.chevron { transition: transform 0.3s; color: #888780; font-size: 12px; }
-.chevron.open { transform: rotate(180deg); }
-.maps-btn {
-  width: 100%; margin-top: 10px; padding: 13px; font-size: 15px; font-weight: 500;
-  background: #fff; color: #0F6E56; border: 1.5px solid #5DCAA5; border-radius: 10px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.maps-btn:hover { background: #f7fdfb; }
-.spinner { width: 20px; height: 20px; border: 2px solid #e0ded8; border-top-color: #1D9E75; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.search-btn { width: 100%; padding: 13px; font-size: 16px; font-weight: 500; background: #1D9E75; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
-.search-btn:hover { background: #178a64; }
-.search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.pac-container { border-radius: 10px; border: 0.5px solid #e0ded8; box-shadow: 0 4px 16px rgba(0,0,0,0.08); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin-top: 4px; }
-.pac-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
-.pac-item:hover { background: #f7fdfb; }
-.pac-item-selected { background: #f7fdfb; }
-.pac-matched { color: #1D9E75; font-weight: 500; }
+/* ── Step content ──────────────────────────────────────── */
+.step-body{padding:20px 20px 0}
+.step-label{font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:12px}
+
+/* ── Location button ───────────────────────────────────── */
+.loc-btn{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;border-radius:12px;
+  background:#E8F7F1;border:1.5px solid #C3EDDB;color:#0F6E56;font-size:15px;font-weight:500;
+  cursor:pointer;transition:transform .15s;-webkit-tap-highlight-color:transparent}
+.loc-btn:active{transform:scale(.97)}
+.loc-btn svg{flex-shrink:0}
+
+.divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:#c8c6c0;font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#EDECE8}
+
+/* ── Search input ──────────────────────────────────────── */
+.search-input{width:100%;font-size:16px;padding:14px 16px;border-radius:12px;border:1px solid #e0ded8;
+  background:#FAFDF9;outline:none;transition:border-color .2s}
+.search-input:focus{border-color:#5DCAA5}
+.search-input::placeholder{color:#b0afa8}
+
+/* ── Locked field (step 2) ─────────────────────────────── */
+.locked-field{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;background:#F5F5F3;color:#888780;font-size:15px}
+.locked-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── Route connector ───────────────────────────────────── */
+.route-connector{display:flex;gap:12px;margin-bottom:16px}
+.connector-line{display:flex;flex-direction:column;align-items:center;padding-top:16px;gap:0}
+.connector-line .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.connector-line .line{width:2px;flex:1;min-height:20px;background:#e0ded8}
+.connector-fields{flex:1;display:flex;flex-direction:column;gap:10px}
+
+/* ── Suggestion tiles ──────────────────────────────────── */
+.suggestions{margin-top:20px}
+.sug-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F5F5F3;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:opacity .15s}
+.sug-item:active{opacity:.6}
+.sug-icon{width:36px;height:36px;border-radius:8px;background:#F5F5F3;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sug-icon svg{width:18px;height:18px;stroke:#888780;fill:none;stroke-width:1.5}
+.sug-name{font-size:15px;font-weight:500;color:#2C2C2A}
+.sug-sub{font-size:12px;color:#888780;margin-top:1px}
+
+/* ── Vehicle pills ─────────────────────────────────────── */
+.pill-scroll{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.pill-scroll::-webkit-scrollbar{display:none}
+.pill{padding:10px 16px;border-radius:20px;border:1.5px solid #e0ded8;background:#fff;font-size:14px;
+  font-weight:500;color:#5F5E5A;white-space:nowrap;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.pill:active{transform:scale(.95)}
+.pill.selected{border-color:#1D9E75;background:#E8F7F1;color:#0F6E56}
+
+/* ── Party grid ────────────────────────────────────────── */
+.party-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.party-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;border:1.5px solid #e0ded8;
+  background:#fff;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.party-btn:active{transform:scale(.96)}
+.party-btn.selected{border-color:#1D9E75;background:#E8F7F1}
+.party-btn svg{width:20px;height:20px;stroke:#5F5E5A;fill:none;stroke-width:1.5;flex-shrink:0}
+.party-btn.selected svg{stroke:#0F6E56}
+.party-btn span{font-size:14px;font-weight:500;color:#5F5E5A}
+.party-btn.selected span{color:#0F6E56}
+
+/* ── Sticky CTA ────────────────────────────────────────── */
+.cta-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+  padding:12px 20px 28px;background:linear-gradient(transparent,#fff 24px);z-index:100}
+.cta-btn{width:100%;height:56px;border-radius:28px;border:none;background:#1D9E75;color:#fff;
+  font-size:17px;font-weight:600;cursor:pointer;transition:transform .15s,opacity .15s;-webkit-tap-highlight-color:transparent}
+.cta-btn:active{transform:scale(.96)}
+.cta-btn:disabled{opacity:.45;cursor:not-allowed}
+.back-link{display:block;text-align:center;padding:8px;font-size:13px;color:#888780;cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+/* ── Loading ───────────────────────────────────────────── */
+.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
+.spinner{width:28px;height:28px;border:3px solid #EDECE8;border-top-color:#1D9E75;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Route cards ───────────────────────────────────────── */
+.route-card{background:#fff;border:1.5px solid #EDECE8;border-radius:16px;padding:16px 18px;margin-bottom:10px;
+  cursor:pointer;transition:border-color .2s,transform .15s;-webkit-tap-highlight-color:transparent}
+.route-card:active{transform:scale(.98)}
+.route-card.recommended{border-color:#5DCAA5}
+.route-svg{display:block;margin:8px auto}
+.timing-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.timing-pill{font-size:11px;padding:4px 10px;border-radius:10px;white-space:nowrap;font-weight:500}
+.timing-drive{background:#F5F5F3;color:#5F5E5A}
+.timing-charge{background:#E8F7F1;color:#085041}
+.timing-total{background:#2C2C2A;color:#fff}
+.recommended-tag{font-size:10px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:8px;background:#E8F7F1;color:#085041}
+.leg-breakdown{margin-top:10px;padding-top:8px;border-top:1px solid #F5F5F3}
+.leg-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#5F5E5A}
+.leg-icon{width:16px;text-align:center;flex-shrink:0;font-size:12px}
+.leg-time{color:#2C2C2A;font-weight:500;flex-shrink:0}
+
+/* ── Stop detail screen ────────────────────────────────── */
+.detail-header{padding:16px 20px;display:flex;align-items:center;gap:12px}
+.detail-back{width:36px;height:36px;border-radius:50%;background:#F5F5F3;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.detail-back:active{background:#EDECE8}
+.detail-body{padding:0 20px 20px}
+.score-big{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.score-num{font-size:36px;font-weight:600;line-height:1}
+.score-label{font-size:13px;font-weight:500}
+.detail-section{padding:14px 0;border-top:1px solid #F5F5F3}
+.detail-section-label{font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:6px}
+.detail-section-text{font-size:15px;color:#2C2C2A;line-height:1.5}
+.food-badge{display:inline-block;font-size:12px;padding:3px 9px;border-radius:10px;margin-right:4px}
+.food-local{background:#E8F7F1;color:#085041}
+.food-mid{background:#FEF3C7;color:#633806}
+.food-chain{background:#F5F5F3;color:#5F5E5A}
+.last-reliable-badge{display:inline-block;font-size:11px;font-weight:500;padding:4px 10px;border-radius:10px;background:#FEF3C7;color:#92400E;margin-bottom:10px}
+.last-reliable-warning{font-size:13px;color:#92400E;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:10px;line-height:1.4}
+.timing-detail{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.timing-detail-item{text-align:center;padding:10px;background:#FAFDF9;border-radius:10px}
+.timing-detail-val{font-size:18px;font-weight:600;color:#2C2C2A}
+.timing-detail-label{font-size:11px;color:#888780;margin-top:2px}
+.maps-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;
+  border-radius:14px;border:1.5px solid #5DCAA5;background:#fff;color:#0F6E56;font-size:15px;
+  font-weight:500;cursor:pointer;transition:transform .15s;margin-top:16px;-webkit-tap-highlight-color:transparent}
+.maps-btn:active{transform:scale(.97)}
+
+/* Google autocomplete override */
+.pac-container{border-radius:12px;border:1px solid #e0ded8;box-shadow:0 8px 24px rgba(0,0,0,.08);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-top:6px}
+.pac-item{padding:10px 14px;font-size:14px;cursor:pointer}
+.pac-item:hover,.pac-item-selected{background:#FAFDF9}
+.pac-matched{color:#1D9E75;font-weight:500}
 </style>
 </head>
 <body>
-<div style="max-width:480px;margin:0 auto;padding:1.5rem 1rem 2.5rem;">
+<div class="app" id="app">
 
-  <div style="margin-bottom:1.5rem;">
-    <p style="font-size:11px;font-weight:600;letter-spacing:0.1em;color:#1D9E75;margin-bottom:6px;">CHARGE WELL. EAT WELL. BE WELL.</p>
-    <p style="font-size:22px;font-weight:500;color:#2C2C2A;line-height:1.3;margin-bottom:4px;">Where to stop on your drive</p>
-    <p style="font-size:15px;color:#5F5E5A;line-height:1.4;">Every stop graded live — walkable spots only.</p>
-    <p style="font-size:13px;color:#888780;line-height:1.5;margin-top:8px;">We don't just find chargers. We find the ones where the wait actually feels good — local food, green space, things for the kids — all within walking distance.</p>
+<!-- ═══════════════════ SCREEN: INPUT ═══════════════════ -->
+<div class="screen active" id="screen-input">
+  <div class="header">
+    <div class="brand">CHARGE WELL. EAT WELL. BE WELL.</div>
+    <div class="title">Where to stop on your drive</div>
+    <div class="subtitle">We find chargers where the wait actually feels good — local food, green space, things for the kids.</div>
   </div>
 
-  <div id="how-it-works" style="display:flex;align-items:flex-start;gap:6px;margin-bottom:14px;">
-    <div style="flex:1;text-align:center;">
-      <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">1</div>
-      <p style="font-size:12px;color:#888780;line-height:1.3;">Enter your route</p>
-    </div>
-    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">&rarr;</div>
-    <div style="flex:1;text-align:center;">
-      <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">2</div>
-      <p style="font-size:12px;color:#888780;line-height:1.3;">We find fast chargers</p>
-    </div>
-    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">&rarr;</div>
-    <div style="flex:1;text-align:center;">
-      <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">3</div>
-      <p style="font-size:12px;color:#888780;line-height:1.3;">Claude grades each stop</p>
+  <div class="hiw-strip" id="hiw-strip">
+    <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-text">Enter route</div></div>
+    <div class="hiw-arrow">&rarr;</div>
+    <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-text">Find chargers</div></div>
+    <div class="hiw-arrow">&rarr;</div>
+    <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-text">Grade stops</div></div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-seg" id="prog-1"></div>
+    <div class="progress-seg" id="prog-2"></div>
+    <div class="progress-seg" id="prog-3"></div>
+  </div>
+
+  <!-- Step 1: Origin -->
+  <div class="step-body" id="step-1">
+    <div class="step-label">WHERE ARE YOU STARTING?</div>
+    <button class="loc-btn" onclick="useMyLocation()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m10-10h-4M6 12H2"/><circle cx="12" cy="12" r="8"/></svg>
+      Use my current location
+    </button>
+    <div class="divider">or type below</div>
+    <input class="search-input" id="inp-from" type="text" placeholder="Search for a city or address" autocomplete="off" />
+    <div class="suggestions" id="sug-from">
+      <div class="sug-item" onclick="pickSuggestion('from','New York, NY')">
+        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+        <div><div class="sug-name">New York, NY</div><div class="sug-sub">The Big Apple</div></div>
+      </div>
+      <div class="sug-item" onclick="pickSuggestion('from','Boston, MA')">
+        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+        <div><div class="sug-name">Boston, MA</div><div class="sug-sub">New England hub</div></div>
+      </div>
+      <div class="sug-item" onclick="pickSuggestion('from','Washington, DC')">
+        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+        <div><div class="sug-name">Washington, DC</div><div class="sug-sub">Capital region</div></div>
+      </div>
     </div>
   </div>
 
-  <div style="background:#fff;border:0.5px solid #e0ded8;border-radius:16px;padding:1rem 1.2rem;margin-bottom:1.25rem;">
-    <div style="margin-bottom:10px;">
-      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">FROM</label>
-      <input type="text" id="inp-from" placeholder="New York, NY" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
+  <!-- Step 2: Destination -->
+  <div class="step-body" id="step-2" style="display:none">
+    <div class="step-label">WHERE ARE YOU HEADED?</div>
+    <div class="route-connector">
+      <div class="connector-line">
+        <div class="dot" style="background:#888780"></div>
+        <div class="line"></div>
+        <div class="dot" style="background:#1D9E75"></div>
+      </div>
+      <div class="connector-fields">
+        <div class="locked-field"><span id="origin-display">New York, NY</span></div>
+        <input class="search-input" id="inp-to" type="text" placeholder="Search for your destination" autocomplete="off" />
+      </div>
     </div>
-    <div style="margin-bottom:10px;">
-      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">TO</label>
-      <input type="text" id="inp-to" placeholder="Boston, MA" autocomplete="off" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;" />
+    <div class="suggestions" id="sug-to">
+      <div class="sug-item" onclick="pickSuggestion('to','Cape Cod, MA')">
+        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
+        <div><div class="sug-name">Cape Cod, MA</div><div class="sug-sub">Beaches and seafood</div></div>
+      </div>
+      <div class="sug-item" onclick="pickSuggestion('to','Burlington, VT')">
+        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
+        <div><div class="sug-name">Burlington, VT</div><div class="sug-sub">Lake Champlain</div></div>
+      </div>
+      <div class="sug-item" onclick="pickSuggestion('to','Outer Banks, NC')">
+        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
+        <div><div class="sug-name">Outer Banks, NC</div><div class="sug-sub">Beach road trip</div></div>
+      </div>
     </div>
-    <div style="margin-bottom:10px;">
-      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">VEHICLE</label>
-      <select id="inp-vehicle" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
-        <option value="tesla_model_y_lr">Tesla Model Y Long Range</option>
-        <option value="tesla_model_y_sr">Tesla Model Y Standard</option>
-        <option value="tesla_model_3_lr">Tesla Model 3 Long Range</option>
-        <option value="tesla_model_3_sr">Tesla Model 3 Standard</option>
-        <option value="tesla_cybertruck">Tesla Cybertruck</option>
-        <option value="rivian_r1t">Rivian R1T</option>
-        <option value="rivian_r1s">Rivian R1S</option>
-        <option value="ford_mach_e">Ford Mustang Mach-E</option>
-        <option value="ford_f150_lightning">Ford F-150 Lightning</option>
-        <option value="chevy_equinox_ev">Chevy Equinox EV</option>
-        <option value="chevy_blazer_ev">Chevy Blazer EV</option>
-        <option value="hyundai_ioniq_5">Hyundai Ioniq 5</option>
-        <option value="hyundai_ioniq_6">Hyundai Ioniq 6</option>
-        <option value="kia_ev6">Kia EV6</option>
-        <option value="kia_ev9">Kia EV9</option>
-        <option value="bmw_ix">BMW iX xDrive50</option>
-        <option value="mercedes_eqs">Mercedes EQS 450+</option>
-        <option value="vw_id4">VW ID.4</option>
-        <option value="porsche_taycan">Porsche Taycan</option>
-        <option value="lucid_air">Lucid Air Grand Touring</option>
-        <option value="cadillac_lyriq">Cadillac Lyriq</option>
-        <option value="polestar_2">Polestar 2</option>
-        <option value="nissan_ariya">Nissan Ariya</option>
-      </select>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:3px;">WITH</label>
-      <p style="font-size:11px;color:#b0afa8;margin-bottom:5px;">Affects how stops are scored for kids, dogs, outdoor space</p>
-      <select id="inp-with" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
-        <option>Kids + dog</option>
-        <option>Kids only</option>
-        <option>Just us</option>
-        <option>Dog only</option>
-      </select>
-    </div>
-    <button id="search-btn" class="search-btn" onclick="runSearch()">Find great stops</button>
   </div>
 
-  <div id="error-area"></div>
-  <div id="results-panel"></div>
+  <!-- Step 3: Trip details -->
+  <div class="step-body" id="step-3" style="display:none">
+    <div class="step-label">YOUR VEHICLE</div>
+    <div class="pill-scroll" id="vehicle-pills"></div>
 
+    <div class="step-label" style="margin-top:8px">WHO'S COMING ALONG?</div>
+    <p style="font-size:12px;color:#b0afa8;margin:-6px 0 8px">Affects how stops are scored for kids, dogs, outdoor space</p>
+    <div class="party-grid">
+      <button class="party-btn selected" onclick="pickParty(this,'Kids + dog')">
+        <svg viewBox="0 0 24 24"><path d="M16 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6 20v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/><circle cx="19" cy="14" r="2"/><path d="M19 16v3"/></svg>
+        <span>Kids + dog</span>
+      </button>
+      <button class="party-btn" onclick="pickParty(this,'Kids only')">
+        <svg viewBox="0 0 24 24"><path d="M16 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6 20v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/></svg>
+        <span>Kids only</span>
+      </button>
+      <button class="party-btn" onclick="pickParty(this,'Dog only')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 13v4M8 21h8M7 6l-2-3M17 6l2-3"/></svg>
+        <span>Dog only</span>
+      </button>
+      <button class="party-btn" onclick="pickParty(this,'Just us')">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Just us</span>
+      </button>
+    </div>
+  </div>
 </div>
+
+<!-- ═══════════════════ SCREEN: LOADING ═══════════════════ -->
+<div class="screen" id="screen-loading">
+  <div class="loading-screen">
+    <div class="spinner"></div>
+    <p style="font-size:16px;font-weight:500;color:#2C2C2A;margin-bottom:4px">Building your trip</p>
+    <p style="font-size:14px;color:#888780;line-height:1.4">Finding chargers and grading every stop within walking distance. About 15 seconds.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════ SCREEN: ROUTES ═══════════════════ -->
+<div class="screen" id="screen-routes">
+  <div class="header">
+    <div class="brand" id="route-header-label">YOUR ROUTES</div>
+    <div class="title" id="route-title"></div>
+    <div class="subtitle" id="route-subtitle"></div>
+  </div>
+  <div style="padding:16px 20px 0" id="routes-list"></div>
+  <div style="padding:0 20px">
+    <button class="maps-btn" onclick="openInMaps()" id="routes-maps-btn" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Open full route in Google Maps
+    </button>
+  </div>
+  <div style="padding:12px 20px">
+    <div class="back-link" onclick="resetToInput()">Start a new search</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SCREEN: STOP DETAIL ═══════════════ -->
+<div class="screen" id="screen-detail">
+  <div class="detail-header">
+    <div class="detail-back" onclick="backToRoutes()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C2C2A" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780">STOP DETAIL</div>
+    </div>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- ═══════════════════ SCREEN: NO STOP ════════════════════ -->
+<div class="screen" id="screen-nostop">
+  <div style="padding:60px 24px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">&#9889;</div>
+    <div style="font-size:20px;font-weight:600;color:#2C2C2A;margin-bottom:8px">No charging stop needed!</div>
+    <div style="font-size:15px;color:#5F5E5A;line-height:1.5" id="nostop-msg"></div>
+    <div id="nostop-svg" style="margin:16px 0"></div>
+    <button class="maps-btn" onclick="openInMaps()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Open route in Google Maps
+    </button>
+    <div class="back-link" style="margin-top:16px" onclick="resetToInput()">Plan another trip</div>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- ═══════════════════ STICKY CTA ═════════════════════════ -->
+<div class="cta-bar" id="cta-bar">
+  <div class="back-link" id="cta-back" style="display:none" onclick="prevStep()">Back</div>
+  <button class="cta-btn" id="cta-btn" disabled onclick="nextStep()">Set starting point</button>
+</div>
+
 <script>
-var currentStrategies = [], currentStops = [], selectedStrategy = null, selectedStop = null;
-var currentOrigin = '', currentDest = '', totalMi = 0;
-var routePolyline = null; // decoded [{lat,lng}]
+// ── State ─────────────────────────────────────────────────────────────
+var currentStep = 1;
+var formData = { origin: '', destination: '', vehicle: 'tesla_model_y_lr', party: 'Kids + dog' };
+var searchResult = null;
+var decodedPolyline = null;
+var currentStops = []; // stops for selected route
+var activeScreen = 'screen-input';
 
+var VEHICLES = [
+  { id:'tesla_model_y_lr', label:'Model Y LR' },{ id:'tesla_model_y_sr', label:'Model Y' },
+  { id:'tesla_model_3_lr', label:'Model 3 LR' },{ id:'tesla_model_3_sr', label:'Model 3' },
+  { id:'tesla_cybertruck', label:'Cybertruck' },{ id:'rivian_r1t', label:'Rivian R1T' },
+  { id:'rivian_r1s', label:'Rivian R1S' },{ id:'ford_mach_e', label:'Mach-E' },
+  { id:'ford_f150_lightning', label:'F-150 Lightning' },{ id:'chevy_equinox_ev', label:'Equinox EV' },
+  { id:'chevy_blazer_ev', label:'Blazer EV' },{ id:'hyundai_ioniq_5', label:'Ioniq 5' },
+  { id:'hyundai_ioniq_6', label:'Ioniq 6' },{ id:'kia_ev6', label:'Kia EV6' },
+  { id:'kia_ev9', label:'Kia EV9' },{ id:'bmw_ix', label:'BMW iX' },
+  { id:'mercedes_eqs', label:'EQS' },{ id:'vw_id4', label:'VW ID.4' },
+  { id:'porsche_taycan', label:'Taycan' },{ id:'lucid_air', label:'Lucid Air' },
+  { id:'cadillac_lyriq', label:'Lyriq' },{ id:'polestar_2', label:'Polestar 2' },
+  { id:'nissan_ariya', label:'Ariya' }
+];
+
+// ── Init vehicle pills ───────────────────────────────────────────────
+(function(){
+  var html = VEHICLES.map(function(v){
+    return '<div class="pill'+(v.id===formData.vehicle?' selected':'')+'" onclick="pickVehicle(\''+v.id+'\',this)">'+v.label+'</div>';
+  }).join('');
+  document.getElementById('vehicle-pills').innerHTML = html;
+})();
+
+// ── Screen transitions ───────────────────────────────────────────────
+function showScreen(id) {
+  var screens = document.querySelectorAll('.screen');
+  screens.forEach(function(s){ s.classList.remove('active'); });
+  var el = document.getElementById(id);
+  // Force reflow for animation
+  el.style.display = '';
+  void el.offsetWidth;
+  el.classList.add('active');
+  activeScreen = id;
+  // Show/hide CTA bar
+  var ctaBar = document.getElementById('cta-bar');
+  ctaBar.style.display = (id === 'screen-input') ? '' : 'none';
+  window.scrollTo(0, 0);
+}
+
+// ── Step flow ────────────────────────────────────────────────────────
+function showStep(n) {
+  currentStep = n;
+  ['step-1','step-2','step-3'].forEach(function(id, i){
+    document.getElementById(id).style.display = (i+1===n) ? '' : 'none';
+  });
+  // Progress bar
+  for (var i = 1; i <= 3; i++) {
+    var seg = document.getElementById('prog-'+i);
+    seg.className = 'progress-seg' + (i < n ? ' done' : i === n ? ' current' : '');
+  }
+  // CTA label + state
+  var btn = document.getElementById('cta-btn');
+  var back = document.getElementById('cta-back');
+  if (n === 1) { btn.textContent = 'Set starting point'; back.style.display = 'none'; }
+  if (n === 2) { btn.textContent = 'Set destination'; back.style.display = ''; }
+  if (n === 3) { btn.textContent = 'Build your trip'; back.style.display = ''; }
+  updateCTAState();
+  // Hide how-it-works after step 1
+  var hiw = document.getElementById('hiw-strip');
+  if (hiw) hiw.style.display = n > 1 ? 'none' : '';
+}
+
+function updateCTAState() {
+  var btn = document.getElementById('cta-btn');
+  if (currentStep === 1) btn.disabled = !formData.origin;
+  else if (currentStep === 2) btn.disabled = !formData.destination;
+  else btn.disabled = false;
+}
+
+function nextStep() {
+  if (currentStep === 1) {
+    if (!formData.origin) return;
+    document.getElementById('origin-display').textContent = formData.origin;
+    showStep(2);
+    setTimeout(function(){ document.getElementById('inp-to').focus(); }, 100);
+  } else if (currentStep === 2) {
+    if (!formData.destination) return;
+    showStep(3);
+  } else {
+    runSearch();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) showStep(currentStep - 1);
+}
+
+// ── Input handlers ───────────────────────────────────────────────────
+document.getElementById('inp-from').addEventListener('input', function(e) {
+  formData.origin = e.target.value.trim();
+  updateCTAState();
+});
+document.getElementById('inp-to').addEventListener('input', function(e) {
+  formData.destination = e.target.value.trim();
+  updateCTAState();
+});
+
+function pickSuggestion(field, val) {
+  if (field === 'from') {
+    formData.origin = val;
+    document.getElementById('inp-from').value = val;
+  } else {
+    formData.destination = val;
+    document.getElementById('inp-to').value = val;
+  }
+  updateCTAState();
+  nextStep();
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    var val = pos.coords.latitude.toFixed(5) + ',' + pos.coords.longitude.toFixed(5);
+    formData.origin = val;
+    document.getElementById('inp-from').value = 'My location';
+    updateCTAState();
+    nextStep();
+  }, function() {
+    // Fail silently — user can type instead
+  });
+}
+
+function pickVehicle(id, el) {
+  formData.vehicle = id;
+  document.querySelectorAll('.pill').forEach(function(p){ p.classList.remove('selected'); });
+  el.classList.add('selected');
+}
+
+function pickParty(el, val) {
+  formData.party = val;
+  document.querySelectorAll('.party-btn').forEach(function(b){ b.classList.remove('selected'); });
+  el.classList.add('selected');
+}
+
+// ── Utilities ────────────────────────────────────────────────────────
+function fmt(m) { if (m<60) return m+'m'; var h=Math.floor(m/60),r=m%60; return r?h+'h '+r+'m':h+'h'; }
 function scoreColor(s) { return s>=75?'#0F6E56':s>=50?'#854F0B':'#888780'; }
-function scoreWord(s)  { return s>=85?'Wonderful':s>=70?'Great stop':s>=55?'Decent':'Basic'; }
+function scoreWord(s) { return s>=85?'Wonderful':s>=70?'Great stop':s>=55?'Decent':'Basic'; }
 
-function animateScore(el, target) {
-  var cur = 0;
-  var step = function() { cur=Math.min(cur+Math.ceil(target/18),target); el.textContent=cur; if(cur<target) requestAnimationFrame(step); };
-  requestAnimationFrame(step);
-}
-
-function formatMinutes(m) {
-  if (m < 60) return m + ' min';
-  var h = Math.floor(m / 60);
-  var r = m % 60;
-  return r > 0 ? h + 'h ' + r + 'm' : h + 'h';
-}
-
-// ── Decode Google encoded polyline ──────────────────────────────────────
 function decodePolyline(encoded) {
-  var points = [], index = 0, lat = 0, lng = 0;
-  while (index < encoded.length) {
-    var b, shift = 0, result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
-    shift = 0; result = 0;
-    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
-    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
-  }
-  return points;
+  var pts=[],idx=0,lat=0,lng=0;
+  while(idx<encoded.length){var b,shift=0,result=0;do{b=encoded.charCodeAt(idx++)-63;result|=(b&0x1f)<<shift;shift+=5}while(b>=0x20);
+  lat+=(result&1)?~(result>>1):(result>>1);shift=0;result=0;do{b=encoded.charCodeAt(idx++)-63;result|=(b&0x1f)<<shift;shift+=5}while(b>=0x20);
+  lng+=(result&1)?~(result>>1):(result>>1);pts.push({lat:lat/1e5,lng:lng/1e5})}return pts;
 }
 
-// ── Render route shape as SVG ───────────────────────────────────────────
-function routeSVG(stops, selectedIdx) {
-  if (!routePolyline || !routePolyline.length) return '';
-
-  var pts = routePolyline;
-  var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  pts.forEach(function(p) {
-    if (p.lat < minLat) minLat = p.lat;
-    if (p.lat > maxLat) maxLat = p.lat;
-    if (p.lng < minLng) minLng = p.lng;
-    if (p.lng > maxLng) maxLng = p.lng;
+function routeSVG(stops, selectedIdx, w, h) {
+  if(!decodedPolyline||!decodedPolyline.length) return '';
+  w=w||200; h=h||80;
+  var pts=decodedPolyline,pad=14;
+  var minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
+  pts.forEach(function(p){if(p.lat<minLat)minLat=p.lat;if(p.lat>maxLat)maxLat=p.lat;if(p.lng<minLng)minLng=p.lng;if(p.lng>maxLng)maxLng=p.lng});
+  var rX=maxLng-minLng||.001,rY=maxLat-minLat||.001;
+  var sc=Math.min((w-pad*2)/rX,(h-pad*2)/rY);
+  var oX=pad+((w-pad*2)-rX*sc)/2,oY=pad+((h-pad*2)-rY*sc)/2;
+  function tx(p){return(oX+(p.lng-minLng)*sc).toFixed(1)}
+  function ty(p){return(oY+(maxLat-p.lat)*sc).toFixed(1)}
+  var step=Math.max(1,Math.floor(pts.length/80)),simp=[];
+  for(var i=0;i<pts.length;i+=step)simp.push(pts[i]);
+  if(simp[simp.length-1]!==pts[pts.length-1])simp.push(pts[pts.length-1]);
+  var d='M'+simp.map(function(p){return tx(p)+','+ty(p)}).join('L');
+  var dots=(stops||[]).map(function(s,si){
+    var best=pts[0],bd=Infinity;
+    for(var j=0;j<pts.length;j+=Math.max(1,Math.floor(pts.length/200))){var dd=Math.pow(pts[j].lat-s.lat,2)+Math.pow(pts[j].lng-s.lng,2);if(dd<bd){bd=dd;best=pts[j]}}
+    var isSel=si===selectedIdx,r=isSel?5.5:3.5;
+    return '<circle cx="'+tx(best)+'" cy="'+ty(best)+'" r="'+r+'" fill="'+(isSel?'#1D9E75':'#5DCAA5')+'" stroke="#fff" stroke-width="1.5"/>';
   });
-
-  var w = 200, h = 80, pad = 12;
-  var rangeX = maxLng - minLng || 0.001;
-  var rangeY = maxLat - minLat || 0.001;
-  var scaleX = (w - pad * 2) / rangeX;
-  var scaleY = (h - pad * 2) / rangeY;
-  var scale = Math.min(scaleX, scaleY);
-  var offX = pad + ((w - pad * 2) - rangeX * scale) / 2;
-  var offY = pad + ((h - pad * 2) - rangeY * scale) / 2;
-
-  function tx(p) { return (offX + (p.lng - minLng) * scale).toFixed(1); }
-  function ty(p) { return (offY + (maxLat - p.lat) * scale).toFixed(1); } // flip Y
-
-  // Simplify polyline for SVG (take every Nth point)
-  var step = Math.max(1, Math.floor(pts.length / 80));
-  var simplified = [];
-  for (var i = 0; i < pts.length; i += step) simplified.push(pts[i]);
-  if (simplified[simplified.length - 1] !== pts[pts.length - 1]) simplified.push(pts[pts.length - 1]);
-
-  var pathD = 'M' + simplified.map(function(p) { return tx(p) + ',' + ty(p); }).join('L');
-
-  // Find nearest polyline point for each stop
-  var stopDots = (stops || []).map(function(s, si) {
-    var bestDist = Infinity, bestPt = pts[0];
-    for (var j = 0; j < pts.length; j += Math.max(1, Math.floor(pts.length / 200))) {
-      var d = Math.pow(pts[j].lat - s.lat, 2) + Math.pow(pts[j].lng - s.lng, 2);
-      if (d < bestDist) { bestDist = d; bestPt = pts[j]; }
-    }
-    var isSelected = si === selectedIdx;
-    var r = isSelected ? 5 : 3.5;
-    return '<circle cx="'+tx(bestPt)+'" cy="'+ty(bestPt)+'" r="'+r+'" fill="'+(isSelected?'#1D9E75':'#5DCAA5')+'" stroke="#FAFDF9" stroke-width="1.5"/>';
-  });
-
-  // Origin and destination dots
-  var originDot = '<circle cx="'+tx(pts[0])+'" cy="'+ty(pts[0])+'" r="4" fill="#2C2C2A" stroke="#FAFDF9" stroke-width="1.5"/>';
-  var destDot = '<circle cx="'+tx(pts[pts.length-1])+'" cy="'+ty(pts[pts.length-1])+'" r="4" fill="#2C2C2A" stroke="#FAFDF9" stroke-width="1.5"/>';
-
-  return '<svg class="route-svg" viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">' +
-    '<path d="'+pathD+'" fill="none" stroke="#c8c6c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-    '<path d="'+pathD+'" fill="none" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>' +
-    originDot + destDot + stopDots.join('') +
-  '</svg>';
-}
-
-// ── Strategy card ─────────────────────────────────────────────────────
-function strategyCardHTML(s, i) {
-  var stopCount = s.stops ? s.stops.length : 0;
-  var totalTrip = s.totalTripMinutes || 0;
-  var totalCharge = s.totalChargingMinutes || 0;
-  var legs = s.legs || [];
-
-  var timingHTML = '';
-  if (totalTrip) {
-    timingHTML = '<div class="timing-row">' +
-      '<span class="timing-pill timing-total">' + formatMinutes(totalTrip) + ' total</span>' +
-      '<span class="timing-pill timing-drive">' + formatMinutes(totalTrip - totalCharge) + ' driving</span>' +
-      '<span class="timing-pill timing-charge">' + formatMinutes(totalCharge) + ' charging</span>' +
-    '</div>';
-  }
-
-  // Leg breakdown
-  var legHTML = '';
-  if (legs.length) {
-    legHTML = '<div class="leg-breakdown">';
-    legs.forEach(function(leg) {
-      var icon = leg.type === 'drive' ? '🚗' : '⚡';
-      var detail = leg.type === 'drive' ? (leg.miles ? leg.miles + ' mi' : '') : '';
-      legHTML += '<div class="leg-item">' +
-        '<span class="leg-icon">' + icon + '</span>' +
-        '<span style="flex:1;">' + leg.label + (detail ? ' &middot; ' + detail : '') + '</span>' +
-        '<span class="leg-time">' + formatMinutes(leg.minutes) + '</span>' +
-      '</div>';
-    });
-    legHTML += '</div>';
-  }
-
-  return '<div class="strategy-card'+(s.recommended?' recommended':'')+'" id="strat-'+i+'" onclick="selectStrategy('+i+')">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' +
-      '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<span style="font-size:18px;">'+(s.emoji || '⚡')+'</span>' +
-        '<span style="font-size:16px;font-weight:500;color:#2C2C2A;">'+s.name+'</span>' +
-      '</div>' +
-      (s.recommended ? '<span class="recommended-tag">RECOMMENDED</span>' : '') +
-    '</div>' +
-    '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:2px;">'+s.tagline+'</p>' +
-    '<p style="font-size:12px;color:#888780;">'+stopCount+' stop'+(stopCount!==1?'s':'')+'</p>' +
-    timingHTML +
-    routeSVG(s.stops || [], null) +
-    legHTML +
-  '</div>';
-}
-
-// ── Stop cards ────────────────────────────────────────────────────────
-function stopCardHTML(c, i, isBest) {
-  var lastReliableHTML = c.lastReliable ? '<div class="last-reliable-badge">Last reliable fast charger</div>' : '';
-  var lastReliableWarning = c.lastReliable ? '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>' : '';
-  var chargeTime = c.chargingMinutes ? '<span style="font-size:12px;color:#1D9E75;font-weight:500;"> &middot; ~' + c.chargingMinutes + ' min charge</span>' : '';
-
-  return '<div class="stop-card '+(isBest?'best':'')+'" id="card-'+i+'">' +
-    '<div class="card-mini" onclick="toggleCard('+i+')">' +
-      '<div style="display:flex;align-items:center;gap:8px;min-width:0;">' +
-        '<div style="width:8px;height:8px;border-radius:50%;background:'+scoreColor(c.score)+';flex-shrink:0;"></div>' +
-        '<span style="font-size:14px;font-weight:500;color:#5F5E5A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+c.name+'</span>' +
-      '</div>' +
-      '<span style="font-size:13px;color:#888780;flex-shrink:0;margin-left:8px;">'+scoreWord(c.score)+' &middot; '+c.score+'</span>' +
-    '</div>' +
-    '<div class="card-full" onclick="toggleCard('+i+')">' +
-      lastReliableHTML +
-      (isBest?'<p style="font-size:11px;font-weight:600;color:#1D9E75;margin-bottom:5px;letter-spacing:0.04em;">BEST STOP ON THIS ROUTE</p>':'') +
-      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
-        '<div style="flex:1;">' +
-          '<p style="font-size:16px;font-weight:500;color:#2C2C2A;">'+c.name+'</p>' +
-          '<p style="font-size:13px;color:#5F5E5A;margin-top:3px;line-height:1.4;">'+c.network+' &middot; '+c.kw+'kW' + chargeTime + '</p>' +
-          '<p style="font-size:13px;color:#888780;margin-top:2px;line-height:1.4;">'+c.address+'</p>' +
-          '<p style="font-size:12px;color:#888780;margin-top:2px;">Mile '+c.distanceFromOriginMi+' &middot; '+formatMinutes(c.driveMinutesFromOrigin)+' from start</p>' +
-        '</div>' +
-        '<div style="text-align:center;flex-shrink:0;">' +
-          '<div id="snum-'+i+'" style="font-size:20px;font-weight:500;color:'+scoreColor(c.score)+';line-height:1;">0</div>' +
-          '<div style="font-size:10px;color:'+scoreColor(c.score)+';margin-top:1px;">'+scoreWord(c.score)+'</div>' +
-        '</div>' +
-        '<span class="chevron" id="chev-'+i+'">&#9662;</span>' +
-      '</div>' +
-      '<div style="height:4px;border-radius:2px;background:#F1EFE8;">' +
-        '<div class="bar-fill" id="bar-'+i+'" style="background:'+scoreColor(c.score)+';"></div>' +
-      '</div>' +
-      (c.caveat?'<p style="font-size:13px;color:#854F0B;margin-top:8px;line-height:1.4;">'+c.caveat+'</p>':'') +
-      lastReliableWarning +
-    '</div>' +
-    '<div class="card-body" id="body-'+i+'">' +
-      (c.food?'<p class="amenity-label">FOOD</p>' +
-        '<div style="display:flex;align-items:baseline;gap:4px;flex-wrap:wrap;margin-bottom:4px;">' +
-          '<span class="food-badge food-'+(c.foodTier||'chain')+'">'+(c.foodTier==='local'?'local favorite':c.foodTier==='mid'?'regional':'chain')+'</span>' +
-          '<span style="font-size:14px;color:#2C2C2A;line-height:1.4;">'+c.food+'</span>' +
-        '</div>':'') +
-      (c.coffee?'<p class="amenity-label">COFFEE</p><p style="font-size:14px;color:#2C2C2A;margin-bottom:4px;line-height:1.4;">'+c.coffee+'</p>':'') +
-      (c.outdoors?'<p class="amenity-label">OUTDOORS</p><p style="font-size:14px;color:#2C2C2A;margin-bottom:4px;line-height:1.4;">'+c.outdoors+'</p>':'') +
-      (c.kids?'<p class="amenity-label">FOR KIDS</p><p style="font-size:14px;color:#2C2C2A;margin-bottom:4px;line-height:1.4;">'+c.kids+'</p>':'') +
-    '</div>' +
-  '</div>';
-}
-
-function selectStrategy(idx) {
-  if (selectedStrategy === idx) return;
-  selectedStrategy = idx;
-  selectedStop = null;
-
-  currentStrategies.forEach(function(_, i) {
-    var el = document.getElementById('strat-' + i);
-    if (el) el.classList.toggle('selected', i === idx);
-  });
-
-  var strat = currentStrategies[idx];
-  var stops = strat.stops || [];
-  currentStops = stops;
-
-  stops.sort(function(a, b) { return b.score - a.score; });
-
-  var container = document.getElementById('stops-container');
-  if (!stops.length) {
-    container.innerHTML = '<p style="font-size:14px;color:#888780;padding:12px 0;">No stops in this strategy.</p>';
-    return;
-  }
-
-  container.innerHTML =
-    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;margin-top:4px;">CHARGE STOPS — best first</p>' +
-    stops.map(function(c, i) { return stopCardHTML(c, i, i === 0); }).join('');
-
-  stops.forEach(function(c, i) {
-    setTimeout(function() {
-      var snum = document.getElementById('snum-' + i);
-      var bar  = document.getElementById('bar-' + i);
-      if (snum) animateScore(snum, c.score);
-      if (bar) { bar.style.background = scoreColor(c.score); setTimeout(function() { bar.style.width = c.score + '%'; }, 30); }
-    }, i * 150);
-  });
-
-  updateMapsLabel(null);
-}
-
-function toggleCard(idx) {
-  var card = document.getElementById('card-' + idx);
-  var body = document.getElementById('body-' + idx);
-  var chev = document.getElementById('chev-' + idx);
-  var isOpen = card.classList.contains('expanded');
-
-  currentStops.forEach(function(_, i) {
-    var b = document.getElementById('body-' + i);
-    var c = document.getElementById('card-' + i);
-    var ch = document.getElementById('chev-' + i);
-    if (b) b.classList.remove('open');
-    if (c) c.classList.remove('expanded', 'open');
-    if (ch) ch.classList.remove('open');
-  });
-
-  if (!isOpen) {
-    body.classList.add('open');
-    card.classList.add('expanded', 'open');
-    if (chev) chev.classList.add('open');
-  }
-
-  selectedStop = isOpen ? null : idx;
-  updateMapsLabel(isOpen ? null : currentStops[idx]?.name);
-}
-
-function updateMapsLabel(stopName) {
-  var el = document.getElementById('maps-label');
-  if (!el) return;
-  if (stopName) el.textContent = 'Open: ' + currentOrigin.split(',')[0] + ' \u2192 ' + stopName.split(',')[0] + ' \u2192 ' + currentDest.split(',')[0];
-  else el.textContent = 'Open full route in Google Maps';
+  return '<svg class="route-svg" viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">'+
+    '<path d="'+d+'" fill="none" stroke="#e0ded8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<path d="'+d+'" fill="none" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    '<circle cx="'+tx(pts[0])+'" cy="'+ty(pts[0])+'" r="4.5" fill="#2C2C2A" stroke="#fff" stroke-width="1.5"/>'+
+    '<circle cx="'+tx(pts[pts.length-1])+'" cy="'+ty(pts[pts.length-1])+'" r="4.5" fill="#2C2C2A" stroke="#fff" stroke-width="1.5"/>'+
+    dots.join('')+'</svg>';
 }
 
 function openInMaps() {
-  // Build path-style URL: /origin/stop1/stop2/.../destination
-  var parts = [currentOrigin];
-  // Always include all stops from the current strategy as waypoints
-  currentStops.forEach(function(c) { parts.push(c.address); });
-  parts.push(currentDest);
-  var url = 'https://www.google.com/maps/dir/' + parts.map(function(p) { return encodeURIComponent(p); }).join('/');
-  window.open(url, '_blank');
+  var parts = [formData.origin];
+  currentStops.forEach(function(c){ parts.push(c.address); });
+  parts.push(formData.destination);
+  window.open('https://www.google.com/maps/dir/' + parts.map(encodeURIComponent).join('/'), '_blank');
 }
 
+// ── Search ───────────────────────────────────────────────────────────
 async function runSearch() {
-  currentOrigin = document.getElementById('inp-from').value.trim();
-  currentDest   = document.getElementById('inp-to').value.trim();
-  var travellerType = document.getElementById('inp-with').value;
-  var vehicle = document.getElementById('inp-vehicle').value;
-
-  if (!currentOrigin || !currentDest) { showError('Please enter both a from and to location.'); return; }
-
-  selectedStrategy = null;
-  selectedStop = null;
-  currentStops = [];
-  routePolyline = null;
-  var hiw = document.getElementById('how-it-works');
-  if (hiw) hiw.style.display = 'none';
-  document.getElementById('error-area').innerHTML = '';
-  var btn = document.getElementById('search-btn');
-  btn.disabled = true;
-  btn.textContent = 'Searching\u2026';
-
-  document.getElementById('results-panel').innerHTML =
-    '<div style="text-align:center;padding:2rem;color:#888780;font-size:15px;">' +
-      '<div class="spinner"></div>' +
-      'Finding chargers and grading stops\u2026 this takes about 15 seconds.' +
-    '</div>';
-
-  var data;
+  showScreen('screen-loading');
   try {
     var res = await fetch('/.netlify/functions/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: currentOrigin, destination: currentDest, travellerType: travellerType, vehicle: vehicle })
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ origin: formData.origin, destination: formData.destination, travellerType: formData.party, vehicle: formData.vehicle })
     });
-    data = await res.json();
-    if (data.error) throw new Error(data.error);
+    searchResult = await res.json();
+    if (searchResult.error) throw new Error(searchResult.error);
   } catch(e) {
-    showError('Search failed: ' + e.message);
-    btn.disabled = false;
-    btn.textContent = 'Find great stops';
+    showScreen('screen-input');
+    showStep(3);
+    alert('Search failed: ' + e.message);
     return;
   }
 
-  btn.disabled = false;
-  btn.textContent = 'Find great stops';
+  if (searchResult.polyline) decodedPolyline = decodePolyline(searchResult.polyline);
 
-  // Decode polyline
-  if (data.polyline) {
-    routePolyline = decodePolyline(data.polyline);
-  }
-
-  // Handle "no stop needed"
-  if (data.noStopNeeded) {
-    document.getElementById('results-panel').innerHTML =
-      '<div style="background:#f7fdfb;border:1.5px solid #5DCAA5;border-radius:14px;padding:1.5rem 1.2rem;text-align:center;">' +
-        '<p style="font-size:28px;margin-bottom:8px;">&#9889;</p>' +
-        '<p style="font-size:18px;font-weight:500;color:#2C2C2A;margin-bottom:8px;">You\'ve got this — no charging stop needed!</p>' +
-        '<p style="font-size:15px;color:#5F5E5A;line-height:1.5;">' + data.noStopMessage + '</p>' +
-        (routePolyline ? routeSVG([], null) : '') +
-        '<button class="maps-btn" style="margin-top:12px;" onclick="openInMaps()">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
-          '<span>Open route in Google Maps</span>' +
-        '</button>' +
-      '</div>';
+  if (searchResult.noStopNeeded) {
+    document.getElementById('nostop-msg').textContent = searchResult.noStopMessage;
+    document.getElementById('nostop-svg').innerHTML = routeSVG([], null);
+    showScreen('screen-nostop');
     return;
   }
 
-  currentStrategies = data.strategies || [];
-  totalMi = data.totalDistanceMi || 100;
-
-  if (!currentStrategies.length && !(data.chargers || []).length) {
-    showError('No EV chargers found along this route. Try a longer route or check back as charger coverage expands.');
-    return;
-  }
-
-  if (!currentStrategies.length) {
-    currentStrategies = [{ name: 'The Route', tagline: 'All available stops', emoji: '⚡', recommended: true, stops: data.chargers || [] }];
-  }
-
-  var driveTimeStr = data.totalDriveMinutes ? ' &middot; ' + formatMinutes(data.totalDriveMinutes) + ' drive' : '';
-
-  var html =
-    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:4px;">ROUTE OVERVIEW</p>' +
-    '<div style="background:#fff;border:0.5px solid #e0ded8;border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
-      '<p style="font-size:15px;color:#2C2C2A;font-weight:500;margin-bottom:2px;">' + currentOrigin.split(',')[0] + ' &rarr; ' + currentDest.split(',')[0] + '</p>' +
-      '<p style="font-size:13px;color:#888780;">' + Math.round(totalMi) + ' miles' + driveTimeStr + '</p>' +
-    '</div>' +
-    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;">COMPARE ROUTES</p>' +
-    currentStrategies.map(function(s, i) { return strategyCardHTML(s, i); }).join('') +
-    '<div id="stops-container" style="margin-top:4px;"></div>' +
-    '<button class="maps-btn" onclick="openInMaps()">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
-      '<span id="maps-label">Open full route in Google Maps</span>' +
-    '</button>';
-
-  document.getElementById('results-panel').innerHTML = html;
-
-  var recommendedIdx = currentStrategies.findIndex(function(s) { return s.recommended; });
-  if (recommendedIdx === -1) recommendedIdx = 0;
-  selectStrategy(recommendedIdx);
+  renderRoutes();
+  showScreen('screen-routes');
 }
 
-function showError(msg) {
-  document.getElementById('results-panel').innerHTML = '';
-  document.getElementById('error-area').innerHTML =
-    '<div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:10px;padding:12px 14px;font-size:14px;color:#791F1F;margin-bottom:12px;line-height:1.4;">' + msg + '</div>';
+// ── Render route list ────────────────────────────────────────────────
+function renderRoutes() {
+  var data = searchResult;
+  var strategies = data.strategies || [];
+  if (!strategies.length && data.chargers && data.chargers.length) {
+    strategies = [{ name:'The Route', tagline:'All available stops', emoji:'⚡', recommended:true, stops:data.chargers }];
+  }
+
+  var oName = formData.origin.split(',')[0];
+  var dName = formData.destination.split(',')[0];
+  document.getElementById('route-title').textContent = oName + ' → ' + dName;
+  var driveStr = data.totalDriveMinutes ? ' · ' + fmt(data.totalDriveMinutes) + ' drive' : '';
+  document.getElementById('route-subtitle').textContent = (data.totalDistanceMi || '?') + ' miles' + driveStr;
+  document.getElementById('routes-maps-btn').style.display = strategies.length ? '' : 'none';
+
+  if (!strategies.length) {
+    document.getElementById('routes-list').innerHTML = '<p style="padding:20px;color:#888780;font-size:15px;">No chargers found along this route.</p>';
+    return;
+  }
+
+  // Set currentStops to recommended strategy stops by default
+  var recIdx = strategies.findIndex(function(s){ return s.recommended; });
+  if (recIdx === -1) recIdx = 0;
+  currentStops = (strategies[recIdx].stops || []).slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; });
+
+  var html = '<div class="step-label" style="margin-bottom:8px">COMPARE ROUTES</div>';
+  strategies.forEach(function(s, i) {
+    var stops = s.stops || [];
+    var total = s.totalTripMinutes || 0;
+    var charge = s.totalChargingMinutes || 0;
+    var legs = s.legs || [];
+    var bestStop = stops.slice().sort(function(a,b){ return (b.score||0)-(a.score||0); })[0];
+    var summary = bestStop ? bestStop.name.split(' - ')[0].split(',')[0] + ' · ' + scoreWord(bestStop.score) : '';
+
+    var legHTML = '';
+    if (legs.length) {
+      legHTML = '<div class="leg-breakdown">';
+      legs.forEach(function(leg) {
+        var icon = leg.type==='drive'?'🚗':'⚡';
+        var detail = leg.type==='drive' && leg.miles ? leg.miles+' mi' : '';
+        legHTML += '<div class="leg-item"><span class="leg-icon">'+icon+'</span><span style="flex:1">'+leg.label+(detail?' · '+detail:'')+'</span><span class="leg-time">'+fmt(leg.minutes)+'</span></div>';
+      });
+      legHTML += '</div>';
+    }
+
+    html += '<div class="route-card'+(s.recommended?' recommended':'')+'" onclick="openRouteDetail('+i+')">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">' +
+        '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+(s.emoji||'⚡')+'</span><span style="font-size:16px;font-weight:600;color:#2C2C2A">'+s.name+'</span></div>' +
+        (s.recommended?'<span class="recommended-tag">RECOMMENDED</span>':'') +
+      '</div>' +
+      '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:4px">'+s.tagline+'</p>' +
+      (summary ? '<p style="font-size:13px;color:#888780;margin-bottom:4px">'+stops.length+' stop'+(stops.length!==1?'s':'')+' · '+summary+'</p>':'') +
+      (total ? '<div class="timing-row"><span class="timing-pill timing-total">'+fmt(total)+' total</span><span class="timing-pill timing-drive">'+fmt(total-charge)+' driving</span><span class="timing-pill timing-charge">'+fmt(charge)+' charging</span></div>' : '') +
+      routeSVG(stops, null) +
+      legHTML +
+    '</div>';
+  });
+
+  // Store strategies for detail view
+  searchResult._strategies = strategies;
+  document.getElementById('routes-list').innerHTML = html;
 }
 
+// ── Route detail → expand stops ──────────────────────────────────────
+function openRouteDetail(stratIdx) {
+  var strat = searchResult._strategies[stratIdx];
+  var stops = (strat.stops || []).slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  currentStops = (strat.stops || []).slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; });
+  if (!stops.length) return;
+  // Show the best stop's detail
+  showStopDetail(stops[0], 0);
+}
+
+function showStopDetail(stop, stopIdx) {
+  var c = stop;
+  var html = '';
+
+  // Route SVG with this stop highlighted
+  var stratStops = currentStops;
+  var highlightIdx = stratStops.indexOf(c);
+  if (highlightIdx === -1) highlightIdx = stopIdx;
+  html += routeSVG(stratStops, highlightIdx, 240, 100);
+
+  // Last reliable badge
+  if (c.lastReliable) html += '<div class="last-reliable-badge">Last reliable fast charger</div>';
+
+  // Score
+  html += '<div class="score-big"><div class="score-num" style="color:'+scoreColor(c.score)+'">'+c.score+'</div><div><div class="score-label" style="color:'+scoreColor(c.score)+'">'+scoreWord(c.score)+'</div><div style="font-size:12px;color:#888780;margin-top:1px">'+c.network+' · '+c.kw+'kW</div></div></div>';
+  html += '<div style="font-size:18px;font-weight:600;color:#2C2C2A;margin-bottom:4px">'+c.name+'</div>';
+  html += '<div style="font-size:14px;color:#888780;line-height:1.4;margin-bottom:4px">'+c.address+'</div>';
+
+  // Timing
+  html += '<div class="timing-detail">';
+  html += '<div class="timing-detail-item"><div class="timing-detail-val">'+fmt(c.driveMinutesFromOrigin||0)+'</div><div class="timing-detail-label">to this stop</div></div>';
+  html += '<div class="timing-detail-item"><div class="timing-detail-val">~'+fmt(c.chargingMinutes||20)+'</div><div class="timing-detail-label">charge time</div></div>';
+  html += '<div class="timing-detail-item"><div class="timing-detail-val">'+c.distanceFromOriginMi+'</div><div class="timing-detail-label">miles in</div></div>';
+  html += '</div>';
+
+  if (c.lastReliable) html += '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>';
+  if (c.caveat) html += '<div style="font-size:14px;color:#854F0B;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:10px;line-height:1.4">'+c.caveat+'</div>';
+
+  // Amenity sections
+  if (c.food) {
+    html += '<div class="detail-section"><div class="detail-section-label">FOOD</div><div><span class="food-badge food-'+(c.foodTier||'chain')+'">'+(c.foodTier==='local'?'local favorite':c.foodTier==='mid'?'regional':'chain')+'</span><span class="detail-section-text">'+c.food+'</span></div></div>';
+  }
+  if (c.coffee) html += '<div class="detail-section"><div class="detail-section-label">COFFEE</div><div class="detail-section-text">'+c.coffee+'</div></div>';
+  if (c.outdoors) html += '<div class="detail-section"><div class="detail-section-label">OUTDOORS</div><div class="detail-section-text">'+c.outdoors+'</div></div>';
+  if (c.kids) html += '<div class="detail-section"><div class="detail-section-label">FOR KIDS</div><div class="detail-section-text">'+c.kids+'</div></div>';
+
+  // Other stops in this route
+  if (currentStops.length > 1) {
+    html += '<div class="detail-section"><div class="detail-section-label">OTHER STOPS ON THIS ROUTE</div>';
+    currentStops.forEach(function(s, i) {
+      if (s.id === c.id) return;
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F5F3;cursor:pointer" onclick="showStopDetail(searchResult._strategies.flatMap(function(st){return st.stops||[]}).find(function(x){return x.id==='+s.id+'}),'+i+')">' +
+        '<div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:'+scoreColor(s.score)+'"></div><span style="font-size:14px;font-weight:500">'+s.name.split(' - ')[0].split(',')[0]+'</span></div>' +
+        '<span style="font-size:13px;color:#888780">'+scoreWord(s.score)+' · '+s.score+'</span></div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<button class="maps-btn" onclick="openInMaps()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Open in Google Maps</button>';
+
+  document.getElementById('detail-body').innerHTML = html;
+  showScreen('screen-detail');
+}
+
+function backToRoutes() { showScreen('screen-routes'); }
+function resetToInput() {
+  formData.origin = ''; formData.destination = '';
+  document.getElementById('inp-from').value = '';
+  document.getElementById('inp-to').value = '';
+  searchResult = null; decodedPolyline = null; currentStops = [];
+  showScreen('screen-input');
+  showStep(1);
+}
+
+// ── Google Places Autocomplete ───────────────────────────────────────
 async function loadMapsAPI() {
   try {
     var res = await fetch('/.netlify/functions/get-config');
     var config = await res.json();
     if (!config.googleApiKey) return;
     var script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + config.googleApiKey + '&libraries=places&callback=initAutocomplete';
-    script.async = true;
-    script.defer = true;
+    script.src = 'https://maps.googleapis.com/maps/api/js?key='+config.googleApiKey+'&libraries=places&callback=initAutocomplete';
+    script.async = true; script.defer = true;
     document.body.appendChild(script);
-  } catch(e) {
-    console.warn('Could not load Maps API:', e);
-  }
+  } catch(e) {}
 }
 
 function initAutocomplete() {
-  var options = { types: ['geocode', 'establishment'] };
+  var opts = { types:['geocode','establishment'] };
   var fromInput = document.getElementById('inp-from');
-  var toInput   = document.getElementById('inp-to');
-  new google.maps.places.Autocomplete(fromInput, options);
-  new google.maps.places.Autocomplete(toInput, options);
-  fromInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') e.preventDefault(); });
-  toInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') e.preventDefault(); });
+  var toInput = document.getElementById('inp-to');
+  var acFrom = new google.maps.places.Autocomplete(fromInput, opts);
+  var acTo = new google.maps.places.Autocomplete(toInput, opts);
+  acFrom.addListener('place_changed', function(){
+    var p = acFrom.getPlace();
+    if (p && p.formatted_address) { formData.origin = p.formatted_address; fromInput.value = p.formatted_address; }
+    else { formData.origin = fromInput.value.trim(); }
+    updateCTAState();
+  });
+  acTo.addListener('place_changed', function(){
+    var p = acTo.getPlace();
+    if (p && p.formatted_address) { formData.destination = p.formatted_address; toInput.value = p.formatted_address; }
+    else { formData.destination = toInput.value.trim(); }
+    updateCTAState();
+  });
+  fromInput.addEventListener('keydown', function(e){ if(e.key==='Enter') e.preventDefault(); });
+  toInput.addEventListener('keydown', function(e){ if(e.key==='Enter') e.preventDefault(); });
 }
 
 loadMapsAPI();
+showStep(1);
 </script>
 </body>
 </html>
