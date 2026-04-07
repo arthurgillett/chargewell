@@ -432,19 +432,15 @@
 
     <!-- Step 3: Trip details -->
     <div class="step-body" id="step-3" style="display:none">
-      <div class="step-label">YOUR VEHICLE</div>
-      <select id="inp-vehicle" class="search-input" style="margin-bottom:12px" onchange="formData.vehicle=this.value">
-      </select>
-
-      <div class="step-label">CHARGE PORT</div>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button class="party-btn selected" id="btn-nacs" onclick="pickConnector('nacs')" style="flex:1;justify-content:center">
-          <span>NACS</span>
-        </button>
-        <button class="party-btn" id="btn-ccs" onclick="pickConnector('ccs')" style="flex:1;justify-content:center">
-          <span>CCS</span>
-        </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="step-label" style="margin-bottom:0">YOUR VEHICLE</div>
+        <div style="display:flex;align-items:center;gap:2px;background:#F5F5F3;border-radius:8px;padding:2px">
+          <button id="btn-nacs" onclick="pickConnector('nacs')" style="font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;border:none;cursor:pointer;background:#fff;color:#2C2C2A;transition:all .15s">NACS</button>
+          <button id="btn-ccs" onclick="pickConnector('ccs')" style="font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:#888780;transition:all .15s">CCS</button>
+        </div>
       </div>
+      <select id="inp-vehicle" class="search-input" style="margin-bottom:16px" onchange="formData.vehicle=this.value">
+      </select>
 
       <div class="step-label">WHO'S COMING ALONG?</div>
       <p style="font-size:12px;color:#b0afa8;margin:-6px 0 8px">Affects how stops are scored for kids, dogs, outdoor space</p>
@@ -574,35 +570,35 @@
    STATE
    ══════════════════════════════════════════════════════════════ */
 var currentStep   = 1;
-var formData      = { origin: '', destination: '', vehicle: 'tesla_model_y_lr', connector: 'nacs', party: 'Kids + dog' };
+var formData      = { origin: '', destination: '', vehicle: 'vw_id4', connector: 'nacs', party: 'Kids + dog' };
 var searchResult  = null;
 var decodedPolyline = null;
 var currentStops  = [];
 var activeScreen  = 'screen-input';
 
 var VEHICLES = [
-  { id: 'tesla_model_y_lr',     label: 'Model Y LR' },
-  { id: 'tesla_model_y_sr',     label: 'Model Y' },
-  { id: 'tesla_model_3_lr',     label: 'Model 3 LR' },
-  { id: 'tesla_model_3_sr',     label: 'Model 3' },
-  { id: 'tesla_cybertruck',     label: 'Cybertruck' },
-  { id: 'rivian_r1t',           label: 'Rivian R1T' },
-  { id: 'rivian_r1s',           label: 'Rivian R1S' },
-  { id: 'ford_mach_e',          label: 'Mach-E' },
-  { id: 'ford_f150_lightning',  label: 'F-150 Lightning' },
-  { id: 'chevy_equinox_ev',     label: 'Equinox EV' },
-  { id: 'chevy_blazer_ev',      label: 'Blazer EV' },
-  { id: 'hyundai_ioniq_5',      label: 'Ioniq 5' },
-  { id: 'hyundai_ioniq_6',      label: 'Ioniq 6' },
-  { id: 'kia_ev6',              label: 'Kia EV6' },
-  { id: 'kia_ev9',              label: 'Kia EV9' },
-  { id: 'bmw_ix',               label: 'BMW iX' },
-  { id: 'mercedes_eqs',         label: 'EQS' },
   { id: 'vw_id4',               label: 'VW ID.4' },
-  { id: 'porsche_taycan',       label: 'Taycan' },
-  { id: 'lucid_air',            label: 'Lucid Air' },
-  { id: 'cadillac_lyriq',       label: 'Lyriq' },
+  { id: 'kia_ev9',              label: 'Kia EV9' },
+  { id: 'hyundai_ioniq_5',      label: 'Hyundai Ioniq 5' },
+  { id: 'tesla_model_y_lr',     label: 'Tesla Model Y Long Range' },
+  { id: 'tesla_model_y_sr',     label: 'Tesla Model Y' },
+  { id: 'rivian_r1t',           label: 'Rivian R1T' },
+  { id: 'ford_mach_e',          label: 'Ford Mustang Mach-E' },
+  { id: 'kia_ev6',              label: 'Kia EV6' },
+  { id: 'chevy_equinox_ev',     label: 'Chevy Equinox EV' },
+  { id: 'hyundai_ioniq_6',      label: 'Hyundai Ioniq 6' },
+  { id: 'tesla_model_3_lr',     label: 'Tesla Model 3 Long Range' },
+  { id: 'tesla_model_3_sr',     label: 'Tesla Model 3' },
   { id: 'polestar_2',           label: 'Polestar 2' },
+  { id: 'ford_f150_lightning',  label: 'Ford F-150 Lightning' },
+  { id: 'rivian_r1s',           label: 'Rivian R1S' },
+  { id: 'chevy_blazer_ev',      label: 'Chevy Blazer EV' },
+  { id: 'bmw_ix',               label: 'BMW iX xDrive50' },
+  { id: 'porsche_taycan',       label: 'Porsche Taycan' },
+  { id: 'mercedes_eqs',         label: 'Mercedes EQS 450+' },
+  { id: 'lucid_air',            label: 'Lucid Air Grand Touring' },
+  { id: 'cadillac_lyriq',       label: 'Cadillac Lyriq' },
+  { id: 'tesla_cybertruck',     label: 'Tesla Cybertruck' },
   { id: 'nissan_ariya',         label: 'Ariya' }
 ];
 
@@ -863,8 +859,12 @@ function useMyLocation() {
 
 function pickConnector(type) {
   formData.connector = type;
-  document.getElementById('btn-nacs').classList.toggle('selected', type === 'nacs');
-  document.getElementById('btn-ccs').classList.toggle('selected', type === 'ccs');
+  var nacs = document.getElementById('btn-nacs');
+  var ccs = document.getElementById('btn-ccs');
+  nacs.style.background = type === 'nacs' ? '#fff' : 'transparent';
+  nacs.style.color = type === 'nacs' ? '#2C2C2A' : '#888780';
+  ccs.style.background = type === 'ccs' ? '#fff' : 'transparent';
+  ccs.style.color = type === 'ccs' ? '#2C2C2A' : '#888780';
 }
 
 function pickParty(el, val) {
