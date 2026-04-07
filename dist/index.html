@@ -990,6 +990,16 @@ function renderRoutes() {
     }];
   }
 
+  // Sort: fewer stops first, then by best stop score descending
+  strategies.sort(function (a, b) {
+    var aStops = (a.stops || []).length;
+    var bStops = (b.stops || []).length;
+    if (aStops !== bStops) return aStops - bStops;
+    var aMax = Math.max.apply(null, (a.stops || []).map(function (s) { return s.score || 0; }).concat([0]));
+    var bMax = Math.max.apply(null, (b.stops || []).map(function (s) { return s.score || 0; }).concat([0]));
+    return bMax - aMax;
+  });
+
   var oName = formData.origin.split(',')[0];
   var dName = formData.destination.split(',')[0];
   document.getElementById('route-title').textContent = oName + ' \u2192 ' + dName;
