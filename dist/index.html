@@ -167,16 +167,16 @@ input,select,button{font-family:inherit}
 <div class="screen active" id="screen-input">
   <div class="header">
     <div class="brand">CHARGE WELL. EAT WELL. BE WELL.</div>
-    <div class="title">Where to stop on your drive</div>
-    <div class="subtitle">We find chargers where the wait actually feels good — local food, green space, things for the kids.</div>
+    <div class="title">Plan a drive you'll actually enjoy</div>
+    <div class="subtitle">Great routes aren't just about getting there — they're about the stops along the way. We build trips around chargers with real food, green space, and things to do while you charge.</div>
   </div>
 
   <div class="hiw-strip" id="hiw-strip">
-    <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-text">Enter route</div></div>
+    <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-text">Plan your drive</div></div>
     <div class="hiw-arrow">&rarr;</div>
-    <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-text">Find chargers</div></div>
+    <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-text">We build routes</div></div>
     <div class="hiw-arrow">&rarr;</div>
-    <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-text">Grade stops</div></div>
+    <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-text">Pick your favorite</div></div>
   </div>
 
   <div class="progress-bar">
@@ -272,15 +272,15 @@ input,select,button{font-family:inherit}
 <div class="screen" id="screen-loading">
   <div class="loading-screen">
     <div class="spinner"></div>
-    <p style="font-size:16px;font-weight:500;color:#2C2C2A;margin-bottom:4px">Building your trip</p>
-    <p style="font-size:14px;color:#888780;line-height:1.4">Finding chargers and grading every stop within walking distance. About 15 seconds.</p>
+    <p style="font-size:16px;font-weight:500;color:#2C2C2A;margin-bottom:4px">Building your route</p>
+    <p style="font-size:14px;color:#888780;line-height:1.4">Finding the best places to stop and putting together routes you'll actually want to drive. About 15 seconds.</p>
   </div>
 </div>
 
 <!-- ═══════════════════ SCREEN: ROUTES ═══════════════════ -->
 <div class="screen" id="screen-routes">
   <div class="header">
-    <div class="brand" id="route-header-label">YOUR ROUTES</div>
+    <div class="brand" id="route-header-label">YOUR TRIP</div>
     <div class="title" id="route-title"></div>
     <div class="subtitle" id="route-subtitle"></div>
   </div>
@@ -292,7 +292,7 @@ input,select,button{font-family:inherit}
     </button>
   </div>
   <div style="padding:12px 20px">
-    <div class="back-link" onclick="resetToInput()">Start a new search</div>
+    <div class="back-link" onclick="resetToInput()">Plan a different drive</div>
   </div>
 </div>
 
@@ -313,7 +313,7 @@ input,select,button{font-family:inherit}
 <div class="screen" id="screen-nostop">
   <div style="padding:60px 24px;text-align:center">
     <div style="font-size:48px;margin-bottom:12px">&#9889;</div>
-    <div style="font-size:20px;font-weight:600;color:#2C2C2A;margin-bottom:8px">No charging stop needed!</div>
+    <div style="font-size:20px;font-weight:600;color:#2C2C2A;margin-bottom:8px">Straight through — no stop needed!</div>
     <div style="font-size:15px;color:#5F5E5A;line-height:1.5" id="nostop-msg"></div>
     <div id="nostop-svg" style="margin:16px 0"></div>
     <button class="maps-btn" onclick="openInMaps()">
@@ -578,7 +578,7 @@ function renderRoutes() {
   if (recIdx === -1) recIdx = 0;
   currentStops = (strategies[recIdx].stops || []).slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; });
 
-  var html = '<div class="step-label" style="margin-bottom:8px">COMPARE ROUTES</div>';
+  var html = '<div class="step-label" style="margin-bottom:8px">WAYS TO MAKE THIS DRIVE</div>';
   strategies.forEach(function(s, i) {
     var stops = s.stops || [];
     var total = s.totalTripMinutes || 0;
