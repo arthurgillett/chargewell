@@ -288,7 +288,6 @@ exports.handler = async (event) => {
       totalDistanceMi: totalMi,
       totalDriveMinutes,
       polyline: routePolyline,
-      _debug: _nrelDebug
     })
   };
 };
