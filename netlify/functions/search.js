@@ -419,6 +419,11 @@ Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
             console.log('Strategy rejected (leg too long):', s.name, 'leg:', prevMi, '→', stop.distanceFromOriginMi, 'max:', maxLeg);
             return false;
           }
+          // Reject stops that are less than 30 miles apart — no point stopping twice in the same area
+          if (prevMi > 0 && stop.distanceFromOriginMi - prevMi < 30) {
+            console.log('Strategy rejected (stops too close):', s.name, prevMi, '→', stop.distanceFromOriginMi);
+            return false;
+          }
           prevMi = stop.distanceFromOriginMi;
           maxLeg = rangeMi * 0.85;
         }
