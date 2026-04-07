@@ -18,12 +18,14 @@ input, select, button { font-family: inherit; }
 .strategy-card:active { background: #f7fdfb; }
 .strategy-card.selected { border: 1.5px solid #5DCAA5; background: #f7fdfb; }
 .strategy-card.recommended { border-color: #5DCAA5; }
-.strategy-timeline { position: relative; height: 20px; margin: 12px 0 4px; }
-.strategy-timeline-line { position: absolute; top: 9px; left: 0; right: 0; height: 2px; background: #e0ded8; border-radius: 1px; }
-.strategy-timeline-dot {
-  position: absolute; top: 5px; width: 10px; height: 10px; border-radius: 50%;
-  border: 2px solid #FAFDF9; transform: translateX(-50%);
+.route-svg { display: block; margin: 10px auto 4px; }
+.timing-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.timing-pill {
+  font-size: 11px; padding: 3px 8px; border-radius: 8px; white-space: nowrap;
 }
+.timing-drive { background: #F1EFE8; color: #5F5E5A; }
+.timing-charge { background: #E1F5EE; color: #085041; }
+.timing-total { background: #2C2C2A; color: #fff; font-weight: 500; }
 
 /* Stop cards */
 .stop-card {
@@ -58,6 +60,12 @@ input, select, button { font-family: inherit; }
   display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
   padding: 2px 8px; border-radius: 8px; background: #E1F5EE; color: #085041;
 }
+
+/* Leg breakdown */
+.leg-breakdown { margin-top: 10px; padding-top: 8px; border-top: 0.5px solid #e0ded8; }
+.leg-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; color: #5F5E5A; }
+.leg-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 11px; }
+.leg-time { color: #2C2C2A; font-weight: 500; flex-shrink: 0; }
 
 .amenity-label { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; color: #888780; padding: 8px 0 4px; border-top: 0.5px solid #e0ded8; margin-top: 4px; }
 .bar-fill { height: 4px; border-radius: 2px; width: 0%; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
@@ -96,12 +104,12 @@ input, select, button { font-family: inherit; }
       <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">1</div>
       <p style="font-size:12px;color:#888780;line-height:1.3;">Enter your route</p>
     </div>
-    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">→</div>
+    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">&rarr;</div>
     <div style="flex:1;text-align:center;">
       <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">2</div>
       <p style="font-size:12px;color:#888780;line-height:1.3;">We find fast chargers</p>
     </div>
-    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">→</div>
+    <div style="color:#e0ded8;font-size:12px;margin-top:5px;">&rarr;</div>
     <div style="flex:1;text-align:center;">
       <div style="width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#1D9E75;font-size:11px;font-weight:600;line-height:22px;margin:0 auto 4px;">3</div>
       <p style="font-size:12px;color:#888780;line-height:1.3;">Claude grades each stop</p>
@@ -119,31 +127,31 @@ input, select, button { font-family: inherit; }
     </div>
     <div style="margin-bottom:10px;">
       <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:5px;">VEHICLE</label>
-        <select id="inp-vehicle" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
-          <option value="tesla_model_y_lr">Tesla Model Y Long Range</option>
-          <option value="tesla_model_y_sr">Tesla Model Y Standard</option>
-          <option value="tesla_model_3_lr">Tesla Model 3 Long Range</option>
-          <option value="tesla_model_3_sr">Tesla Model 3 Standard</option>
-          <option value="tesla_cybertruck">Tesla Cybertruck</option>
-          <option value="rivian_r1t">Rivian R1T</option>
-          <option value="rivian_r1s">Rivian R1S</option>
-          <option value="ford_mach_e">Ford Mustang Mach-E</option>
-          <option value="ford_f150_lightning">Ford F-150 Lightning</option>
-          <option value="chevy_equinox_ev">Chevy Equinox EV</option>
-          <option value="chevy_blazer_ev">Chevy Blazer EV</option>
-          <option value="hyundai_ioniq_5">Hyundai Ioniq 5</option>
-          <option value="hyundai_ioniq_6">Hyundai Ioniq 6</option>
-          <option value="kia_ev6">Kia EV6</option>
-          <option value="kia_ev9">Kia EV9</option>
-          <option value="bmw_ix">BMW iX xDrive50</option>
-          <option value="mercedes_eqs">Mercedes EQS 450+</option>
-          <option value="vw_id4">VW ID.4</option>
-          <option value="porsche_taycan">Porsche Taycan</option>
-          <option value="lucid_air">Lucid Air Grand Touring</option>
-          <option value="cadillac_lyriq">Cadillac Lyriq</option>
-          <option value="polestar_2">Polestar 2</option>
-          <option value="nissan_ariya">Nissan Ariya</option>
-        </select>
+      <select id="inp-vehicle" style="width:100%;font-size:16px;padding:10px 12px;border-radius:8px;border:0.5px solid #e0ded8;background:#fff;">
+        <option value="tesla_model_y_lr">Tesla Model Y Long Range</option>
+        <option value="tesla_model_y_sr">Tesla Model Y Standard</option>
+        <option value="tesla_model_3_lr">Tesla Model 3 Long Range</option>
+        <option value="tesla_model_3_sr">Tesla Model 3 Standard</option>
+        <option value="tesla_cybertruck">Tesla Cybertruck</option>
+        <option value="rivian_r1t">Rivian R1T</option>
+        <option value="rivian_r1s">Rivian R1S</option>
+        <option value="ford_mach_e">Ford Mustang Mach-E</option>
+        <option value="ford_f150_lightning">Ford F-150 Lightning</option>
+        <option value="chevy_equinox_ev">Chevy Equinox EV</option>
+        <option value="chevy_blazer_ev">Chevy Blazer EV</option>
+        <option value="hyundai_ioniq_5">Hyundai Ioniq 5</option>
+        <option value="hyundai_ioniq_6">Hyundai Ioniq 6</option>
+        <option value="kia_ev6">Kia EV6</option>
+        <option value="kia_ev9">Kia EV9</option>
+        <option value="bmw_ix">BMW iX xDrive50</option>
+        <option value="mercedes_eqs">Mercedes EQS 450+</option>
+        <option value="vw_id4">VW ID.4</option>
+        <option value="porsche_taycan">Porsche Taycan</option>
+        <option value="lucid_air">Lucid Air Grand Touring</option>
+        <option value="cadillac_lyriq">Cadillac Lyriq</option>
+        <option value="polestar_2">Polestar 2</option>
+        <option value="nissan_ariya">Nissan Ariya</option>
+      </select>
     </div>
     <div style="margin-bottom:12px;">
       <label style="font-size:11px;font-weight:500;letter-spacing:0.06em;color:#888780;display:block;margin-bottom:3px;">WITH</label>
@@ -165,6 +173,7 @@ input, select, button { font-family: inherit; }
 <script>
 var currentStrategies = [], currentStops = [], selectedStrategy = null, selectedStop = null;
 var currentOrigin = '', currentDest = '', totalMi = 0;
+var routePolyline = null; // decoded [{lat,lng}]
 
 function scoreColor(s) { return s>=75?'#0F6E56':s>=50?'#854F0B':'#888780'; }
 function scoreWord(s)  { return s>=85?'Wonderful':s>=70?'Great stop':s>=55?'Decent':'Basic'; }
@@ -175,49 +184,137 @@ function animateScore(el, target) {
   requestAnimationFrame(step);
 }
 
-// ── Strategy timeline ─────────────────────────────────────────────────
-function strategyTimelineHTML(stops, total) {
-  var dots = [
-    { pct: 0, color: '#2C2C2A' },
-  ];
-  stops.forEach(function(s) {
-    dots.push({ pct: Math.min(95, Math.max(5, (s.distanceFromOriginMi || 0) / total * 100)), color: '#5DCAA5' });
-  });
-  dots.push({ pct: 100, color: '#2C2C2A' });
+function formatMinutes(m) {
+  if (m < 60) return m + ' min';
+  var h = Math.floor(m / 60);
+  var r = m % 60;
+  return r > 0 ? h + 'h ' + r + 'm' : h + 'h';
+}
 
-  return '<div class="strategy-timeline">' +
-    '<div class="strategy-timeline-line"></div>' +
-    dots.map(function(d) {
-      return '<div class="strategy-timeline-dot" style="left:'+d.pct.toFixed(1)+'%;background:'+d.color+';"></div>';
-    }).join('') +
-  '</div>';
+// ── Decode Google encoded polyline ──────────────────────────────────────
+function decodePolyline(encoded) {
+  var points = [], index = 0, lat = 0, lng = 0;
+  while (index < encoded.length) {
+    var b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
+
+// ── Render route shape as SVG ───────────────────────────────────────────
+function routeSVG(stops, selectedIdx) {
+  if (!routePolyline || !routePolyline.length) return '';
+
+  var pts = routePolyline;
+  var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  pts.forEach(function(p) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  });
+
+  var w = 200, h = 80, pad = 12;
+  var rangeX = maxLng - minLng || 0.001;
+  var rangeY = maxLat - minLat || 0.001;
+  var scaleX = (w - pad * 2) / rangeX;
+  var scaleY = (h - pad * 2) / rangeY;
+  var scale = Math.min(scaleX, scaleY);
+  var offX = pad + ((w - pad * 2) - rangeX * scale) / 2;
+  var offY = pad + ((h - pad * 2) - rangeY * scale) / 2;
+
+  function tx(p) { return (offX + (p.lng - minLng) * scale).toFixed(1); }
+  function ty(p) { return (offY + (maxLat - p.lat) * scale).toFixed(1); } // flip Y
+
+  // Simplify polyline for SVG (take every Nth point)
+  var step = Math.max(1, Math.floor(pts.length / 80));
+  var simplified = [];
+  for (var i = 0; i < pts.length; i += step) simplified.push(pts[i]);
+  if (simplified[simplified.length - 1] !== pts[pts.length - 1]) simplified.push(pts[pts.length - 1]);
+
+  var pathD = 'M' + simplified.map(function(p) { return tx(p) + ',' + ty(p); }).join('L');
+
+  // Find nearest polyline point for each stop
+  var stopDots = (stops || []).map(function(s, si) {
+    var bestDist = Infinity, bestPt = pts[0];
+    for (var j = 0; j < pts.length; j += Math.max(1, Math.floor(pts.length / 200))) {
+      var d = Math.pow(pts[j].lat - s.lat, 2) + Math.pow(pts[j].lng - s.lng, 2);
+      if (d < bestDist) { bestDist = d; bestPt = pts[j]; }
+    }
+    var isSelected = si === selectedIdx;
+    var r = isSelected ? 5 : 3.5;
+    return '<circle cx="'+tx(bestPt)+'" cy="'+ty(bestPt)+'" r="'+r+'" fill="'+(isSelected?'#1D9E75':'#5DCAA5')+'" stroke="#FAFDF9" stroke-width="1.5"/>';
+  });
+
+  // Origin and destination dots
+  var originDot = '<circle cx="'+tx(pts[0])+'" cy="'+ty(pts[0])+'" r="4" fill="#2C2C2A" stroke="#FAFDF9" stroke-width="1.5"/>';
+  var destDot = '<circle cx="'+tx(pts[pts.length-1])+'" cy="'+ty(pts[pts.length-1])+'" r="4" fill="#2C2C2A" stroke="#FAFDF9" stroke-width="1.5"/>';
+
+  return '<svg class="route-svg" viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">' +
+    '<path d="'+pathD+'" fill="none" stroke="#c8c6c0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="'+pathD+'" fill="none" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>' +
+    originDot + destDot + stopDots.join('') +
+  '</svg>';
 }
 
 // ── Strategy card ─────────────────────────────────────────────────────
 function strategyCardHTML(s, i) {
   var stopCount = s.stops ? s.stops.length : 0;
+  var totalTrip = s.totalTripMinutes || 0;
+  var totalCharge = s.totalChargingMinutes || 0;
+  var legs = s.legs || [];
+
+  var timingHTML = '';
+  if (totalTrip) {
+    timingHTML = '<div class="timing-row">' +
+      '<span class="timing-pill timing-total">' + formatMinutes(totalTrip) + ' total</span>' +
+      '<span class="timing-pill timing-drive">' + formatMinutes(totalTrip - totalCharge) + ' driving</span>' +
+      '<span class="timing-pill timing-charge">' + formatMinutes(totalCharge) + ' charging</span>' +
+    '</div>';
+  }
+
+  // Leg breakdown
+  var legHTML = '';
+  if (legs.length) {
+    legHTML = '<div class="leg-breakdown">';
+    legs.forEach(function(leg) {
+      var icon = leg.type === 'drive' ? '🚗' : '⚡';
+      var detail = leg.type === 'drive' ? (leg.miles ? leg.miles + ' mi' : '') : '';
+      legHTML += '<div class="leg-item">' +
+        '<span class="leg-icon">' + icon + '</span>' +
+        '<span style="flex:1;">' + leg.label + (detail ? ' &middot; ' + detail : '') + '</span>' +
+        '<span class="leg-time">' + formatMinutes(leg.minutes) + '</span>' +
+      '</div>';
+    });
+    legHTML += '</div>';
+  }
+
   return '<div class="strategy-card'+(s.recommended?' recommended':'')+'" id="strat-'+i+'" onclick="selectStrategy('+i+')">' +
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' +
       '<div style="display:flex;align-items:center;gap:8px;">' +
-        '<span style="font-size:18px;">'+( s.emoji || '⚡')+'</span>' +
+        '<span style="font-size:18px;">'+(s.emoji || '⚡')+'</span>' +
         '<span style="font-size:16px;font-weight:500;color:#2C2C2A;">'+s.name+'</span>' +
       '</div>' +
       (s.recommended ? '<span class="recommended-tag">RECOMMENDED</span>' : '') +
     '</div>' +
     '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:2px;">'+s.tagline+'</p>' +
     '<p style="font-size:12px;color:#888780;">'+stopCount+' stop'+(stopCount!==1?'s':'')+'</p>' +
-    strategyTimelineHTML(s.stops || [], totalMi) +
+    timingHTML +
+    routeSVG(s.stops || [], null) +
+    legHTML +
   '</div>';
 }
 
 // ── Stop cards ────────────────────────────────────────────────────────
 function stopCardHTML(c, i, isBest) {
-  var lastReliableHTML = c.lastReliable
-    ? '<div class="last-reliable-badge">Last reliable fast charger</div>'
-    : '';
-  var lastReliableWarning = c.lastReliable
-    ? '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>'
-    : '';
+  var lastReliableHTML = c.lastReliable ? '<div class="last-reliable-badge">Last reliable fast charger</div>' : '';
+  var lastReliableWarning = c.lastReliable ? '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>' : '';
+  var chargeTime = c.chargingMinutes ? '<span style="font-size:12px;color:#1D9E75;font-weight:500;"> &middot; ~' + c.chargingMinutes + ' min charge</span>' : '';
 
   return '<div class="stop-card '+(isBest?'best':'')+'" id="card-'+i+'">' +
     '<div class="card-mini" onclick="toggleCard('+i+')">' +
@@ -233,8 +330,9 @@ function stopCardHTML(c, i, isBest) {
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
         '<div style="flex:1;">' +
           '<p style="font-size:16px;font-weight:500;color:#2C2C2A;">'+c.name+'</p>' +
-          '<p style="font-size:13px;color:#5F5E5A;margin-top:3px;line-height:1.4;">'+c.network+' &middot; '+c.kw+'kW &middot; ~'+c.typicalMinutes+' min</p>' +
+          '<p style="font-size:13px;color:#5F5E5A;margin-top:3px;line-height:1.4;">'+c.network+' &middot; '+c.kw+'kW' + chargeTime + '</p>' +
           '<p style="font-size:13px;color:#888780;margin-top:2px;line-height:1.4;">'+c.address+'</p>' +
+          '<p style="font-size:12px;color:#888780;margin-top:2px;">Mile '+c.distanceFromOriginMi+' &middot; '+formatMinutes(c.driveMinutesFromOrigin)+' from start</p>' +
         '</div>' +
         '<div style="text-align:center;flex-shrink:0;">' +
           '<div id="snum-'+i+'" style="font-size:20px;font-weight:500;color:'+scoreColor(c.score)+';line-height:1;">0</div>' +
@@ -266,18 +364,15 @@ function selectStrategy(idx) {
   selectedStrategy = idx;
   selectedStop = null;
 
-  // Highlight strategy card
   currentStrategies.forEach(function(_, i) {
     var el = document.getElementById('strat-' + i);
     if (el) el.classList.toggle('selected', i === idx);
   });
 
-  // Render stop cards for selected strategy
   var strat = currentStrategies[idx];
   var stops = strat.stops || [];
   currentStops = stops;
 
-  // Sort by score descending
   stops.sort(function(a, b) { return b.score - a.score; });
 
   var container = document.getElementById('stops-container');
@@ -290,7 +385,6 @@ function selectStrategy(idx) {
     '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;margin-top:4px;">CHARGE STOPS — best first</p>' +
     stops.map(function(c, i) { return stopCardHTML(c, i, i === 0); }).join('');
 
-  // Animate scores
   stops.forEach(function(c, i) {
     setTimeout(function() {
       var snum = document.getElementById('snum-' + i);
@@ -309,7 +403,6 @@ function toggleCard(idx) {
   var chev = document.getElementById('chev-' + idx);
   var isOpen = card.classList.contains('expanded');
 
-  // Collapse all cards first
   currentStops.forEach(function(_, i) {
     var b = document.getElementById('body-' + i);
     var c = document.getElementById('card-' + i);
@@ -319,7 +412,6 @@ function toggleCard(idx) {
     if (ch) ch.classList.remove('open');
   });
 
-  // If opening, expand this card
   if (!isOpen) {
     body.classList.add('open');
     card.classList.add('expanded', 'open');
@@ -338,15 +430,13 @@ function updateMapsLabel(stopName) {
 }
 
 function openInMaps() {
-  var o = encodeURIComponent(currentOrigin);
-  var d = encodeURIComponent(currentDest);
-  var wp;
-  if (selectedStop !== null && currentStops[selectedStop]) {
-    wp = encodeURIComponent(currentStops[selectedStop].address);
-  } else {
-    wp = currentStops.map(function(c) { return encodeURIComponent(c.address); }).join('|');
-  }
-  window.open('https://www.google.com/maps/dir/?api=1&origin=' + o + '&destination=' + d + '&waypoints=' + wp + '&travelmode=driving', '_blank');
+  // Build path-style URL: /origin/stop1/stop2/.../destination
+  var parts = [currentOrigin];
+  // Always include all stops from the current strategy as waypoints
+  currentStops.forEach(function(c) { parts.push(c.address); });
+  parts.push(currentDest);
+  var url = 'https://www.google.com/maps/dir/' + parts.map(function(p) { return encodeURIComponent(p); }).join('/');
+  window.open(url, '_blank');
 }
 
 async function runSearch() {
@@ -360,6 +450,7 @@ async function runSearch() {
   selectedStrategy = null;
   selectedStop = null;
   currentStops = [];
+  routePolyline = null;
   var hiw = document.getElementById('how-it-works');
   if (hiw) hiw.style.display = 'none';
   document.getElementById('error-area').innerHTML = '';
@@ -392,6 +483,11 @@ async function runSearch() {
   btn.disabled = false;
   btn.textContent = 'Find great stops';
 
+  // Decode polyline
+  if (data.polyline) {
+    routePolyline = decodePolyline(data.polyline);
+  }
+
   // Handle "no stop needed"
   if (data.noStopNeeded) {
     document.getElementById('results-panel').innerHTML =
@@ -399,6 +495,7 @@ async function runSearch() {
         '<p style="font-size:28px;margin-bottom:8px;">&#9889;</p>' +
         '<p style="font-size:18px;font-weight:500;color:#2C2C2A;margin-bottom:8px;">You\'ve got this — no charging stop needed!</p>' +
         '<p style="font-size:15px;color:#5F5E5A;line-height:1.5;">' + data.noStopMessage + '</p>' +
+        (routePolyline ? routeSVG([], null) : '') +
         '<button class="maps-btn" style="margin-top:12px;" onclick="openInMaps()">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
           '<span>Open route in Google Maps</span>' +
@@ -415,19 +512,19 @@ async function runSearch() {
     return;
   }
 
-  // If no strategies came back, make one from all chargers
   if (!currentStrategies.length) {
     currentStrategies = [{ name: 'The Route', tagline: 'All available stops', emoji: '⚡', recommended: true, stops: data.chargers || [] }];
   }
 
-  // Render
+  var driveTimeStr = data.totalDriveMinutes ? ' &middot; ' + formatMinutes(data.totalDriveMinutes) + ' drive' : '';
+
   var html =
     '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:4px;">ROUTE OVERVIEW</p>' +
     '<div style="background:#fff;border:0.5px solid #e0ded8;border-radius:14px;padding:14px 16px;margin-bottom:14px;">' +
-      '<p style="font-size:15px;color:#2C2C2A;font-weight:500;margin-bottom:2px;">' + currentOrigin.split(',')[0] + ' \u2192 ' + currentDest.split(',')[0] + '</p>' +
-      '<p style="font-size:13px;color:#888780;">' + Math.round(totalMi) + ' miles &middot; ' + currentStrategies.length + ' route option' + (currentStrategies.length !== 1 ? 's' : '') + '</p>' +
+      '<p style="font-size:15px;color:#2C2C2A;font-weight:500;margin-bottom:2px;">' + currentOrigin.split(',')[0] + ' &rarr; ' + currentDest.split(',')[0] + '</p>' +
+      '<p style="font-size:13px;color:#888780;">' + Math.round(totalMi) + ' miles' + driveTimeStr + '</p>' +
     '</div>' +
-    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;">CHOOSE YOUR ROUTE</p>' +
+    '<p style="font-size:11px;font-weight:600;letter-spacing:0.06em;color:#888780;margin-bottom:8px;">COMPARE ROUTES</p>' +
     currentStrategies.map(function(s, i) { return strategyCardHTML(s, i); }).join('') +
     '<div id="stops-container" style="margin-top:4px;"></div>' +
     '<button class="maps-btn" onclick="openInMaps()">' +
@@ -437,7 +534,6 @@ async function runSearch() {
 
   document.getElementById('results-panel').innerHTML = html;
 
-  // Auto-select the recommended strategy
   var recommendedIdx = currentStrategies.findIndex(function(s) { return s.recommended; });
   if (recommendedIdx === -1) recommendedIdx = 0;
   selectStrategy(recommendedIdx);
@@ -449,7 +545,6 @@ function showError(msg) {
     '<div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:10px;padding:12px 14px;font-size:14px;color:#791F1F;margin-bottom:12px;line-height:1.4;">' + msg + '</div>';
 }
 
-// Load Google Maps API key from config endpoint
 async function loadMapsAPI() {
   try {
     var res = await fetch('/.netlify/functions/get-config');
