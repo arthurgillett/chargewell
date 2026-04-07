@@ -358,42 +358,17 @@ async function generateStrategies(chargers, origin, destination, totalMi, rangeM
     c.distanceFromOriginMi < rangeMi * 0.95 && (totalMi - c.distanceFromOriginMi) < maxLegAfterCharge
   ).map(c => c.id);
 
-  const prompt = `You are a route strategy planner for an EV road trip app.
+  const prompt = `Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min drive)
+Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi range). Max ${rangeMi} mi first leg, ${Math.round(rangeMi * 0.85)} mi between charges.
+${singleStopIds.length > 0 ? 'Single-stop feasible IDs: ' + singleStopIds.join(', ') : 'Needs 2+ stops.'}
 
-Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min drive)
-Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi HIGHWAY range at 75mph — this is already reduced from EPA, use this number as the real max between charges)
-Travellers: ${travellerType || "Family"}
-
-Available DC fast chargers along route (already filtered — no very early stops):
+Chargers:
 ${chargerSummary}
 
-CRITICAL FEASIBILITY RULE: The driver starts at 100% and after each charge gets to about 85% (${Math.round(rangeMi * 0.85)} miles of range). EVERY leg must be shorter than the available range:
-- Origin to first stop: must be under ${rangeMi} miles (starting at 100%)
-- Between stops: must be under ${Math.round(rangeMi * 0.85)} miles (charged to ~85%)
-- Last stop to destination: must be under ${Math.round(rangeMi * 0.85)} miles
+Pick 2-3 DIFFERENT route options using different chargers. Each must be feasible (legs under range limit). Compare stop experiences, not just networks.
 
-${singleStopIds.length > 0 ? 'Chargers that work as single stops (feasible alone): ids ' + singleStopIds.join(', ') : 'No single charger can cover this trip alone — every option needs 2+ stops.'}
-
-Propose 2-3 route options. Each option uses a DIFFERENT charger or set of chargers. The user wants to compare alternatives — these can be at similar distances but different chargers (e.g. a Tesla Supercharger at a mall vs a rest stop charger — very different experiences even in the same area).
-
-Rules:
-- Every option MUST pass the feasibility check above
-- Two options CAN use chargers at the same distance — what matters is the STOPS are different
-- Recommend the option with the best stop experience
-- Use creative names that hint at the stop vibe
-- Each needs a short tagline about the tradeoff
-- Mark exactly one as recommended:true
-
-Reply ONLY with a JSON array:
-[
-  {
-    "name": "The Scenic Pause",
-    "tagline": "One great stop, arrive easy",
-    "emoji": "☀️",
-    "recommended": true,
-    "stopIds": [123]
-  }
-]`;
+Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
+[{"name":"The Mall Stop","tagline":"Shop while you charge","emoji":"🛍️","recommended":true,"stopIds":[121737]}]`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
