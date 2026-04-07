@@ -248,24 +248,44 @@ exports.handler = async (event) => {
 };
 
 // ── Charging time estimate ──────────────────────────────────────────────
-// For a single-stop strategy: charge enough to reach destination with 10% buffer
+// Simulates DC fast charging with realistic taper curve + 5 min overhead.
 // prevStopMi = where we last charged (0 = origin), nextStopMi = where we need to reach
 function estimateChargingMinutes(charger, rangeMi, batteryKwh, totalDistanceMi, prevStopMi, nextStopMi) {
-  // Miles driven since last full charge (or start)
   const milesSinceCharge = charger.distanceFromOriginMi - (prevStopMi || 0);
-  const batteryAtArrival = Math.max(0.05, 1 - milesSinceCharge / rangeMi);
+  const socAtArrival = Math.max(0.05, 1 - milesSinceCharge / rangeMi);
 
-  // Miles needed to reach next stop or destination, with 10% buffer
   const milesToNext = (nextStopMi || totalDistanceMi) - charger.distanceFromOriginMi;
-  const batteryNeededToReach = (milesToNext / rangeMi) + 0.10;
-  // Target charge level: what we need, capped at 90% (DC fast)
-  const targetCharge = Math.min(0.90, Math.max(batteryAtArrival, batteryNeededToReach));
+  const socNeeded = (milesToNext / rangeMi) + 0.10;
+  const targetSoc = Math.min(0.90, Math.max(socAtArrival, socNeeded));
 
-  const chargeNeeded = Math.max(0, targetCharge - batteryAtArrival);
-  const kwhNeeded = chargeNeeded * batteryKwh;
-  const effectiveKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw || 150);
-  const minutes = Math.round((kwhNeeded / effectiveKw) * 60);
-  return Math.max(10, minutes);
+  if (targetSoc <= socAtArrival) return 15; // minimum real-world stop
+
+  // Simulate charging in 5% SoC increments with taper
+  // Typical DC fast charge curve: full power up to ~50%, then taper
+  const peakKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw || 150);
+  let totalMinutes = 0;
+  let soc = socAtArrival;
+  const step = 0.05; // 5% increments
+
+  while (soc < targetSoc) {
+    const nextSoc = Math.min(targetSoc, soc + step);
+    const midSoc = (soc + nextSoc) / 2;
+
+    // Taper: 100% of peak below 20%, then linear drop to 25% of peak at 100% SoC
+    let rateMultiplier;
+    if (midSoc <= 0.20) rateMultiplier = 1.0;
+    else if (midSoc <= 0.50) rateMultiplier = 1.0 - 0.15 * ((midSoc - 0.20) / 0.30); // 1.0 → 0.85
+    else if (midSoc <= 0.80) rateMultiplier = 0.85 - 0.40 * ((midSoc - 0.50) / 0.30); // 0.85 → 0.45
+    else rateMultiplier = 0.45 - 0.20 * ((midSoc - 0.80) / 0.20); // 0.45 → 0.25
+
+    const effectiveKw = peakKw * Math.max(0.20, rateMultiplier);
+    const kwhForStep = (nextSoc - soc) * batteryKwh;
+    totalMinutes += (kwhForStep / effectiveKw) * 60;
+    soc = nextSoc;
+  }
+
+  // Add 5 min overhead (plug in, start session, unplug)
+  return Math.max(15, Math.round(totalMinutes + 5));
 }
 
 // ── Strategy timing calculation ─────────────────────────────────────────
