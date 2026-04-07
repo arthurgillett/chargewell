@@ -209,7 +209,7 @@ exports.handler = async (event) => {
 
       // Only keep chargers within ~15 miles of the route
       const distFromRouteMi = Math.sqrt(bestDist) * 69; // rough degrees→miles
-      if (distFromRouteMi > 15) return;
+      if (distFromRouteMi > 25) return;
 
       const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
       chargerMap[s.id] = {
