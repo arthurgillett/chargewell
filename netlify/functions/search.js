@@ -413,6 +413,14 @@ Reply ONLY with a JSON array:
       const chargerById = {};
       chargers.forEach(c => { chargerById[String(c.id)] = c; });
 
+      // Normalize: Haiku sometimes returns "stops" instead of "stopIds"
+      strategies.forEach(s => {
+        if (!s.stopIds && Array.isArray(s.stops)) {
+          // "stops" might be an array of IDs or objects with id fields
+          s.stopIds = s.stops.map(st => typeof st === 'object' ? (st.id || st.stopId) : st).filter(Boolean);
+        }
+      });
+
       // Validate feasibility of each strategy
       const validated = strategies.filter(s => {
         if (!Array.isArray(s.stopIds) || !s.stopIds.length) {
