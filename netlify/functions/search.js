@@ -175,6 +175,7 @@ exports.handler = async (event) => {
 
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
+  let _nrelDebug = {};
   try {
     // Pick ~6 evenly-spaced sample points for NREL queries (fits in 10s timeout)
     const queryPoints = [];
@@ -223,6 +224,7 @@ exports.handler = async (event) => {
       };
     });
     chargers = Object.values(chargerMap);
+    _nrelDebug = { queryPts: queryPoints.length, rawFromNrel: results.flat().length, unique: chargers.length, miles: [...new Set(chargers.map(c=>c.distanceFromOriginMi))].sort((a,b)=>a-b) };
 
     chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
 
@@ -271,6 +273,7 @@ exports.handler = async (event) => {
       totalDistanceMi: totalMi,
       totalDriveMinutes,
       polyline: routePolyline,
+      _debug: _nrelDebug
     })
   };
 };
