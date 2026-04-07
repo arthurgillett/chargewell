@@ -1054,101 +1054,113 @@ function renderRoutes() {
 
 function openRouteDetail(stratIdx) {
   var strat = searchResult._strategies[stratIdx];
-  var stops = (strat.stops || []).slice()
-    .sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
   currentStops = (strat.stops || []).slice()
     .sort(function (a, b) { return a.distanceFromOriginMi - b.distanceFromOriginMi; });
-  if (!stops.length) return;
-  showStopDetail(stops[0], 0);
+  if (!currentStops.length) return;
+  // Expand the highest-scored stop by default
+  var bestIdx = 0;
+  currentStops.forEach(function (s, i) { if ((s.score || 0) > (currentStops[bestIdx].score || 0)) bestIdx = i; });
+  showStopDetail(bestIdx);
 }
 
-function showStopDetail(stop, stopIdx) {
-  var c = stop;
+function showStopDetail(expandIdx) {
   var html = '';
+  var oName = formData.origin.split(',')[0];
+  var dName = formData.destination.split(',')[0];
+  var totalMi = searchResult.totalDistanceMi || 0;
+  var totalDriveMin = searchResult.totalDriveMinutes || 0;
 
-  // Route SVG with highlighted dot
-  var highlightIdx = currentStops.indexOf(c);
-  if (highlightIdx === -1) highlightIdx = stopIdx;
-  html += routeSVG(currentStops, highlightIdx, 240, 100);
+  // Route SVG
+  html += routeSVG(currentStops, expandIdx, 240, 100);
 
-  // Last reliable badge
-  if (c.lastReliable) {
-    html += '<div class="last-reliable-badge">Last reliable fast charger</div>';
-  }
+  // Build the full trip as a vertical timeline
+  html += '<div class="itinerary" style="margin-top:16px">';
 
-  // CCS badge
-  if (formData.connector === 'ccs') {
-    html += '<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;margin-bottom:10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> CCS adapter needed for this charger</div>';
-  }
+  var prevMi = 0;
+  var prevMin = 0;
 
-  // Score block
-  html += '<div class="score-big">' +
-    '<div class="score-num" style="color:' + scoreColor(c.score) + '">' + c.score + '</div>' +
-    '<div>' +
-      '<div class="score-label" style="color:' + scoreColor(c.score) + '">' + scoreWord(c.score) + '</div>' +
-      '<div style="font-size:12px;color:#888780;margin-top:1px">' + c.network + ' \u00B7 ' + c.kw + 'kW</div>' +
-    '</div>' +
-  '</div>';
+  currentStops.forEach(function (c, i) {
+    // Drive leg to this stop
+    var driveMi = c.distanceFromOriginMi - prevMi;
+    var driveMin = c.driveMinutesFromOrigin - prevMin;
+    html += '<div class="itin-segment">' +
+      '<div class="itin-dot" style="background:#e0ded8"></div>' +
+      '<div class="itin-label"><span class="itin-time">' + fmt(Math.max(1, driveMin)) + '</span> drive' + (driveMi ? ' \u00B7 ' + driveMi + ' mi' : '') + '</div>' +
+      '<div class="itin-detail">' + (i === 0 ? 'From ' + oName : 'From previous stop') + '</div>' +
+    '</div>';
 
-  // Name + address
-  html += '<div style="font-size:18px;font-weight:600;color:#2C2C2A;margin-bottom:4px">' + c.name + '</div>';
-  html += '<div style="font-size:14px;color:#888780;line-height:1.4;margin-bottom:4px">' + c.address + '</div>';
+    // The stop itself
+    var isExpanded = i === expandIdx;
+    var shortName = c.name.split(' - ')[0].split(',')[0];
 
-  // Timing grid
-  html += '<div class="timing-detail">' +
-    '<div class="timing-detail-item"><div class="timing-detail-val">' + fmt(c.driveMinutesFromOrigin || 0) + '</div><div class="timing-detail-label">to this stop</div></div>' +
-    '<div class="timing-detail-item"><div class="timing-detail-val">~' + fmt(c.chargingMinutes || 20) + '</div><div class="timing-detail-label">charge time</div></div>' +
-    '<div class="timing-detail-item"><div class="timing-detail-val">' + c.distanceFromOriginMi + '</div><div class="timing-detail-label">miles in</div></div>' +
-  '</div>';
+    if (isExpanded) {
+      // Expanded stop — full detail
+      html += '<div class="itin-segment" style="border-left-color:#1D9E75">' +
+        '<div class="itin-dot" style="background:#1D9E75;width:12px;height:12px;left:-6.5px"></div>' +
+        '<div style="background:#FAFDF9;border:1px solid #EDECE8;border-radius:12px;padding:14px;margin:4px 0 4px">';
 
-  // Warnings
-  if (c.lastReliable) {
-    html += '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>';
-  }
-  if (c.caveat) {
-    html += '<div style="font-size:14px;color:#854F0B;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:10px;line-height:1.4">' + c.caveat + '</div>';
-  }
+      if (c.lastReliable) html += '<div class="last-reliable-badge">Last reliable fast charger</div>';
+      if (formData.connector === 'ccs') html += '<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;margin-bottom:8px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> CCS adapter needed</div>';
 
-  // Amenities
-  if (c.food) {
-    var tier = c.foodTier || 'chain';
-    var tierLabel = tier === 'local' ? 'local favorite' : tier === 'mid' ? 'regional' : 'chain';
-    html += '<div class="detail-section"><div class="detail-section-label">FOOD</div>' +
-      '<div><span class="food-badge food-' + tier + '">' + tierLabel + '</span>' +
-      '<span class="detail-section-text">' + c.food + '</span></div></div>';
-  }
-  if (c.coffee) {
-    html += '<div class="detail-section"><div class="detail-section-label">COFFEE</div>' +
-      '<div class="detail-section-text">' + c.coffee + '</div></div>';
-  }
-  if (c.outdoors) {
-    html += '<div class="detail-section"><div class="detail-section-label">OUTDOORS</div>' +
-      '<div class="detail-section-text">' + c.outdoors + '</div></div>';
-  }
-  if (c.kids) {
-    html += '<div class="detail-section"><div class="detail-section-label">FOR KIDS</div>' +
-      '<div class="detail-section-text">' + c.kids + '</div></div>';
-  }
+      html += '<div class="score-big">' +
+        '<div class="score-num" style="color:' + scoreColor(c.score) + '">' + c.score + '</div>' +
+        '<div><div class="score-label" style="color:' + scoreColor(c.score) + '">' + scoreWord(c.score) + '</div>' +
+        '<div style="font-size:12px;color:#888780;margin-top:1px">' + c.network + ' \u00B7 ' + c.kw + 'kW</div></div></div>';
 
-  // Other stops
-  if (currentStops.length > 1) {
-    html += '<div class="detail-section"><div class="detail-section-label">OTHER STOPS ON THIS ROUTE</div>';
-    currentStops.forEach(function (s, i) {
-      if (s.id === c.id) return;
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F5F3;cursor:pointer" ' +
-        'onclick="showStopDetail(searchResult._strategies.flatMap(function(st){return st.stops||[]}).find(function(x){return x.id===' + s.id + '}),' + i + ')">' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-          '<div style="width:8px;height:8px;border-radius:50%;background:' + scoreColor(s.score) + '"></div>' +
-          '<span style="font-size:14px;font-weight:500">' + s.name.split(' - ')[0].split(',')[0] + '</span>' +
+      html += '<div style="font-size:16px;font-weight:600;color:#2C2C2A;margin-bottom:3px">' + c.name + '</div>';
+      html += '<div style="font-size:13px;color:#888780;line-height:1.4;margin-bottom:8px">' + c.address + '</div>';
+
+      html += '<div class="timing-detail" style="margin:8px 0">' +
+        '<div class="timing-detail-item"><div class="timing-detail-val">~' + fmt(c.chargingMinutes || 20) + '</div><div class="timing-detail-label">charge time</div></div>' +
+        '<div class="timing-detail-item"><div class="timing-detail-val">' + c.distanceFromOriginMi + '</div><div class="timing-detail-label">miles in</div></div>' +
+        '<div class="timing-detail-item"><div class="timing-detail-val">' + fmt(c.driveMinutesFromOrigin || 0) + '</div><div class="timing-detail-label">from start</div></div></div>';
+
+      if (c.lastReliable) html += '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>';
+      if (c.caveat) html += '<div style="font-size:13px;color:#854F0B;background:#FFFBEB;border-radius:8px;padding:8px 12px;margin-top:8px;line-height:1.4">' + c.caveat + '</div>';
+
+      if (c.food) {
+        var tier = c.foodTier || 'chain';
+        html += '<div class="detail-section"><div class="detail-section-label">FOOD</div>' +
+          '<span class="food-badge food-' + tier + '">' + (tier === 'local' ? 'local favorite' : tier === 'mid' ? 'regional' : 'chain') + '</span> ' +
+          '<span class="detail-section-text">' + c.food + '</span></div>';
+      }
+      if (c.coffee) html += '<div class="detail-section"><div class="detail-section-label">COFFEE</div><div class="detail-section-text">' + c.coffee + '</div></div>';
+      if (c.outdoors) html += '<div class="detail-section"><div class="detail-section-label">OUTDOORS</div><div class="detail-section-text">' + c.outdoors + '</div></div>';
+      if (c.kids) html += '<div class="detail-section"><div class="detail-section-label">FOR KIDS</div><div class="detail-section-text">' + c.kids + '</div></div>';
+
+      html += '</div></div>';
+    } else {
+      // Collapsed stop — single tappable line
+      html += '<div class="itin-segment" style="cursor:pointer" onclick="showStopDetail(' + i + ')">' +
+        '<div class="itin-dot" style="background:#5DCAA5"></div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between">' +
+          '<div class="itin-label" style="font-weight:500">' + shortName + '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+            '<span style="font-size:12px;color:#888780">~' + fmt(c.chargingMinutes || 20) + '</span>' +
+            '<span style="width:7px;height:7px;border-radius:50%;background:' + scoreColor(c.score) + ';display:inline-block"></span>' +
+            '<span style="font-size:13px;font-weight:500;color:' + scoreColor(c.score) + '">' + c.score + '</span>' +
+          '</div>' +
         '</div>' +
-        '<span style="font-size:13px;color:#888780">' + scoreWord(s.score) + ' \u00B7 ' + s.score + '</span>' +
       '</div>';
-    });
-    html += '</div>';
-  }
+    }
+
+    prevMi = c.distanceFromOriginMi;
+    prevMin = c.driveMinutesFromOrigin;
+  });
+
+  // Final drive leg to destination
+  var finalMi = totalMi - prevMi;
+  var finalMin = totalDriveMin - prevMin;
+  html += '<div class="itin-segment" style="border-left-color:transparent">' +
+    '<div class="itin-dot" style="background:#2C2C2A"></div>' +
+    '<div class="itin-label"><span class="itin-time">' + fmt(Math.max(1, finalMin)) + '</span> drive' + (finalMi ? ' \u00B7 ' + finalMi + ' mi' : '') + '</div>' +
+    '<div class="itin-detail">Arrive at ' + dName + '</div>' +
+  '</div>';
+
+  html += '</div>';
 
   // Maps button
-  html += '<button class="maps-btn" onclick="openInMaps()">' +
+  html += '<button class="maps-btn" style="margin-top:16px" onclick="openInMaps()">' +
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2">' +
       '<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' +
     '</svg> Open in Google Maps</button>';
