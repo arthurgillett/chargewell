@@ -450,36 +450,43 @@ async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {
     })).filter(p => p.meters <= 750);
   } catch (e) { places = []; }
 
-  let grade = { score: 50, scoreWord: "Decent", food: "See nearby options", coffee: null, outdoors: null, kids: null, caveat: null, foodTier: "chain" };
+  let grade = { score: 50, scoreWord: "Decent", food: null, coffee: null, outdoors: null, kids: null, caveat: null, foodTier: "chain" };
   try {
-    const prompt = `Grade this EV charging stop for a road trip.
-Charger: ${charger.name} · ${charger.network} · ${charger.kw}kW
-Vehicle: ${vehicle || "EV"}
-Travellers: ${travellerType || "Family with kids"}
-Nearby places within 750m: ${JSON.stringify(places)}
+    const prompt = `You're helping a family decide if an EV charging stop is worth their time. Grade this stop honestly — a great stop makes the whole trip better, a bad one is just dead time.
 
-Food description rules:
-- "local" tier: describe with warmth and specificity, e.g. "Rosie's Diner — beloved local breakfast spot with homemade pies"
-- "mid" tier: brief and positive, e.g. "Panera Bread, Chipotle"
-- "chain" tier: single neutral word, e.g. "McDonald's"
+Charger: ${charger.name} · ${charger.network} · ${charger.kw}kW
+Travellers: ${travellerType || "Family with kids"}
+Nearby places within walking distance (750m): ${JSON.stringify(places)}
+
+Think about what it's actually like to stop here for 20-30 minutes with ${travellerType || "a family"}. Is there somewhere genuinely good to eat, not just a drive-through? Can the kids run around? Is there a coffee shop worth walking to, or just gas station coffee? Can the dog stretch its legs somewhere green?
+
+Write like a knowledgeable friend giving honest advice, not a review aggregator. Be specific about what's there. If there's nothing good, say so — don't dress up a highway rest stop.
+
+Food descriptions:
+- If there's a real local restaurant or bakery: name it, say what makes it worth stopping for. E.g. "Rosie's Diner — great breakfast spot, known for homemade pies. Worth the walk."
+- If it's decent chains: just name them honestly. E.g. "Panera and Chipotle — solid enough for a quick bite."
+- If it's just fast food: say so plainly. E.g. "Just Burger King and a gas station."
+
+For kids: only mention genuinely kid-friendly things (playgrounds, parks, open space) — a fast food restaurant is not a kids' amenity.
+For outdoors/dogs: only mention if there's actual green space, a park, or a trail nearby. A parking lot doesn't count.
 
 Reply ONLY with JSON:
 {
   "score": <0-100>,
   "scoreWord": <"Wonderful"|"Great stop"|"Decent"|"Basic">,
-  "food": "<best 1-2 walkable food options, described per tier rules above>",
-  "coffee": "<best coffee nearby or null>",
-  "outdoors": "<best outdoor/park option walkable or null>",
-  "kids": "<best kid-friendly option or null>",
-  "caveat": "<one short sentence caveat or null>",
+  "food": "<honest readable description of best food options within walking distance, or null if nothing notable>",
+  "coffee": "<specific coffee option if there's a real cafe, or null — don't mention gas station coffee>",
+  "outdoors": "<specific park, trail, or green space if walkable, or null>",
+  "kids": "<specific playground, park, or kid-friendly spot if walkable, or null — not restaurants>",
+  "caveat": "<one honest sentence about the main downside, or null>",
   "foodTier": <"local"|"mid"|"chain">
 }
-85-100=exceptional local food+outdoor, 70-84=great with gem, 55-69=decent+walkable, 40-54=chains only, 0-39=nothing nearby.`;
+Scoring guide: 85-100 exceptional (local gems + outdoor space), 70-84 genuinely good (a real find nearby), 55-69 decent (walkable chains, somewhere to sit), 40-54 bare minimum (fast food only), 0-39 nothing worth mentioning.`;
 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 300, messages: [{ role: "user", content: prompt }] })
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 450, messages: [{ role: "user", content: prompt }] })
     });
     const json = await res.json();
     const text = json.content?.[0]?.text || "{}";
