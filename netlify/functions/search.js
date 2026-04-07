@@ -211,10 +211,7 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], strategies: [], totalDistanceMi: totalMi, polyline: routePolyline, totalDriveMinutes }) };
   }
 
-  // Add charging time estimates to each charger
-  chargers.forEach(c => {
-    c.chargingMinutes = estimateChargingMinutes(c, rangeMi, batteryKwh, totalDistanceMi);
-  });
+  // Charging times are calculated per-strategy below (depends on stop sequence)
 
   // ── Step 3: Detect thin coverage zones ────────────────────────────────
   const thinCoverageInfo = detectThinCoverage(chargers, totalMi);
@@ -232,7 +229,7 @@ exports.handler = async (event) => {
   const strategiesWithGrades = strategies.map(s => {
     const stops = (s.stopIds || []).map(id => gradedById[id]).filter(Boolean);
     stops.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
-    const timing = calculateStrategyTiming(stops, totalDriveMinutes, totalMi);
+    const timing = calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, batteryKwh);
     return { ...s, stops, ...timing };
   });
 
@@ -249,20 +246,28 @@ exports.handler = async (event) => {
 };
 
 // ── Charging time estimate ──────────────────────────────────────────────
-function estimateChargingMinutes(charger, rangeMi, batteryKwh, totalDistanceMi) {
-  // How much battery used to reach this charger (assume start at 100%)
-  const fractionUsed = charger.distanceFromOriginMi / rangeMi;
-  const batteryAtArrival = Math.max(0.05, 1 - fractionUsed); // at least 5%
-  // Charge to 80% (DC fast charging sweet spot)
-  const chargeNeeded = Math.max(0, 0.80 - batteryAtArrival);
+// For a single-stop strategy: charge enough to reach destination with 10% buffer
+// prevStopMi = where we last charged (0 = origin), nextStopMi = where we need to reach
+function estimateChargingMinutes(charger, rangeMi, batteryKwh, totalDistanceMi, prevStopMi, nextStopMi) {
+  // Miles driven since last full charge (or start)
+  const milesSinceCharge = charger.distanceFromOriginMi - (prevStopMi || 0);
+  const batteryAtArrival = Math.max(0.05, 1 - milesSinceCharge / rangeMi);
+
+  // Miles needed to reach next stop or destination, with 10% buffer
+  const milesToNext = (nextStopMi || totalDistanceMi) - charger.distanceFromOriginMi;
+  const batteryNeededToReach = (milesToNext / rangeMi) + 0.10;
+  // Target charge level: what we need, capped at 90% (DC fast)
+  const targetCharge = Math.min(0.90, Math.max(batteryAtArrival, batteryNeededToReach));
+
+  const chargeNeeded = Math.max(0, targetCharge - batteryAtArrival);
   const kwhNeeded = chargeNeeded * batteryKwh;
   const effectiveKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw || 150);
   const minutes = Math.round((kwhNeeded / effectiveKw) * 60);
-  return Math.max(10, minutes); // minimum 10 min stop
+  return Math.max(10, minutes);
 }
 
 // ── Strategy timing calculation ─────────────────────────────────────────
-function calculateStrategyTiming(stops, totalDriveMinutes, totalMi) {
+function calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, batteryKwh) {
   if (!stops.length) return { totalTripMinutes: totalDriveMinutes, totalChargingMinutes: 0, legs: [] };
 
   const legs = [];
@@ -270,6 +275,10 @@ function calculateStrategyTiming(stops, totalDriveMinutes, totalMi) {
   let prevMinutes = 0;
 
   stops.forEach((stop, i) => {
+    const nextStopMi = (i < stops.length - 1) ? stops[i + 1].distanceFromOriginMi : totalMi;
+    const chargeMin = estimateChargingMinutes(stop, rangeMi, batteryKwh, totalMi, prevMi, nextStopMi);
+    stop.chargingMinutes = chargeMin;
+
     const legDriveMin = stop.driveMinutesFromOrigin - prevMinutes;
     legs.push({
       type: "drive", label: i === 0 ? "Drive to first stop" : "Drive to next stop",
@@ -278,7 +287,7 @@ function calculateStrategyTiming(stops, totalDriveMinutes, totalMi) {
     });
     legs.push({
       type: "charge", label: `Charge at ${stop.name.split(" - ")[0].split(",")[0]}`,
-      minutes: stop.chargingMinutes || 20
+      minutes: chargeMin
     });
     prevMi = stop.distanceFromOriginMi;
     prevMinutes = stop.driveMinutesFromOrigin;
@@ -331,26 +340,39 @@ function detectThinCoverage(chargers, totalMi) {
 // ── Strategy generation via Claude Haiku ─────────────────────────────────
 async function generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle) {
   const chargerSummary = chargers.map(c =>
-    `id:${c.id} "${c.name}" at mile ${c.distanceFromOriginMi} (${c.driveMinutesFromOrigin}min drive), ${c.network}, ${c.kw}kW, ~${c.chargingMinutes}min charge`
+    `id:${c.id} "${c.name}" at mile ${c.distanceFromOriginMi} (${c.driveMinutesFromOrigin}min drive), ${c.network}, ${c.kw}kW`
   ).join("\n");
+
+  // Pre-validate: which chargers can be standalone (single-stop) options?
+  // A single stop works if: origin→stop < rangeMi AND stop→destination < rangeMi (charging to ~85%)
+  const maxLegAfterCharge = rangeMi * 0.85; // after charging to 85%
+  const singleStopIds = chargers.filter(c =>
+    c.distanceFromOriginMi < rangeMi * 0.95 && (totalMi - c.distanceFromOriginMi) < maxLegAfterCharge
+  ).map(c => c.id);
 
   const prompt = `You are a route strategy planner for an EV road trip app.
 
 Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min drive)
-Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi highway range at 75mph, ${batteryKwh}kWh battery)
+Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi HIGHWAY range at 75mph — this is already reduced from EPA, use this number as the real max between charges)
 Travellers: ${travellerType || "Family"}
 
 Available DC fast chargers along route (already filtered — all are 80+ min from start):
 ${chargerSummary}
 
-The user wants to compare 2-3 genuinely different stopping options for this trip. Each route option should have just 1-2 stops (depending on trip length). The goal is side-by-side comparison of real alternatives — e.g. "stop at charger A" vs "stop at charger B" vs "stop at both".
+CRITICAL FEASIBILITY RULE: The driver starts at 100% and after each charge gets to about 85% (${Math.round(rangeMi * 0.85)} miles of range). EVERY leg must be shorter than the available range:
+- Origin to first stop: must be under ${rangeMi} miles (starting at 100%)
+- Between stops: must be under ${Math.round(rangeMi * 0.85)} miles (charged to ~85%)
+- Last stop to destination: must be under ${Math.round(rangeMi * 0.85)} miles
+
+${singleStopIds.length > 0 ? 'Chargers that work as single stops (feasible alone): ids ' + singleStopIds.join(', ') : 'No single charger can cover this trip alone — every option needs 2+ stops.'}
+
+Propose 2-3 route options comparing different stopping strategies. The goal is real alternatives the user can compare side by side.
 
 Rules:
-- Propose exactly 2-3 route options, each using a different subset of the chargers above
-- Every option must be feasible: driver starts at 100%, cannot go more than ${rangeMi} miles between charges or before destination
-- For trips under 350 miles, prefer 1-stop options so the user is comparing single stops
-- For longer trips, 2 stops per option is fine
-- Use creative, memorable names (not generic)
+- Every option MUST pass the feasibility check above. Do not propose infeasible routes.
+- For trips where a single stop works, compare different single-stop options
+- For longer trips, use 2-3 stops per option as needed
+- Use creative, memorable names
 - Each needs a short tagline with the tradeoff
 - Mark exactly one as recommended:true
 
@@ -377,11 +399,39 @@ Reply ONLY with a JSON array:
     if (match) {
       const strategies = JSON.parse(match[0]);
       const validIds = new Set(chargers.map(c => c.id));
-      return strategies.filter(s => Array.isArray(s.stopIds) && s.stopIds.length > 0 && s.stopIds.every(id => validIds.has(id)));
+      const chargerById = {};
+      chargers.forEach(c => { chargerById[c.id] = c; });
+
+      // Validate feasibility of each strategy
+      return strategies.filter(s => {
+        if (!Array.isArray(s.stopIds) || !s.stopIds.length || !s.stopIds.every(id => validIds.has(id))) return false;
+        // Check each leg
+        const stops = s.stopIds.map(id => chargerById[id]).sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
+        let prevMi = 0;
+        let maxLeg = rangeMi; // first leg from 100%
+        for (const stop of stops) {
+          if (stop.distanceFromOriginMi - prevMi > maxLeg) return false;
+          prevMi = stop.distanceFromOriginMi;
+          maxLeg = rangeMi * 0.85; // subsequent legs from ~85% charge
+        }
+        if (totalMi - prevMi > maxLeg) return false; // last leg to destination
+        return true;
+      });
     }
   } catch (e) { /* fall through */ }
 
-  return [{ name: "The Route", tagline: "All available stops", emoji: "⚡", recommended: true, stopIds: chargers.slice(0, 2).map(c => c.id) }];
+  // Fallback: build a feasible route from chargers
+  const fallbackStops = [];
+  let prevMi = 0, maxLeg = rangeMi;
+  for (const c of chargers) {
+    if (c.distanceFromOriginMi - prevMi > maxLeg * 0.8) {
+      fallbackStops.push(c.id);
+      prevMi = c.distanceFromOriginMi;
+      maxLeg = rangeMi * 0.85;
+    }
+  }
+  if (!fallbackStops.length && chargers.length) fallbackStops.push(chargers[0].id);
+  return [{ name: "The Route", tagline: "Best available stops", emoji: "⚡", recommended: true, stopIds: fallbackStops }];
 }
 
 async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {

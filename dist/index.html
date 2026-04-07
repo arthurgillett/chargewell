@@ -664,8 +664,13 @@ function renderRoutes() {
     var total = s.totalTripMinutes || 0;
     var charge = s.totalChargingMinutes || 0;
     var legs = s.legs || [];
-    var bestStop = stops.slice().sort(function(a,b){ return (b.score||0)-(a.score||0); })[0];
-    var summary = bestStop ? bestStop.name.split(' - ')[0].split(',')[0] + ' · ' + scoreWord(bestStop.score) : '';
+    // Build stop score summary
+    var stopScores = stops.slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; }).map(function(st) {
+      var shortName = st.name.split(' - ')[0].split(',')[0];
+      var sc = st.score || 0;
+      return '<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:'+scoreColor(sc)+';display:inline-block"></span> '+shortName+' <span style="color:'+scoreColor(sc)+';font-weight:500">'+sc+'</span></span>';
+    });
+    var stopsLine = stops.length + ' stop' + (stops.length!==1?'s':'');
 
     var legHTML = '';
     if (legs.length) {
@@ -684,7 +689,8 @@ function renderRoutes() {
         (s.recommended?'<span class="recommended-tag">RECOMMENDED</span>':'') +
       '</div>' +
       '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:4px">'+s.tagline+'</p>' +
-      (summary ? '<p style="font-size:13px;color:#888780;margin-bottom:4px">'+stops.length+' stop'+(stops.length!==1?'s':'')+' · '+summary+'</p>':'') +
+      '<p style="font-size:13px;color:#888780;margin-bottom:2px">'+stopsLine+'</p>' +
+      (stopScores.length ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;font-size:13px">'+stopScores.join('')+'</div>' : '') +
       (total ? '<div class="timing-row"><span class="timing-pill timing-total">'+fmt(total)+' total</span><span class="timing-pill timing-drive">'+fmt(total-charge)+' driving</span><span class="timing-pill timing-charge">'+fmt(charge)+' charging</span></div>' : '') +
       routeSVG(stops, null) +
       legHTML +
