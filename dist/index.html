@@ -291,6 +291,12 @@ input,select,button{font-family:inherit}
       Open full route in Google Maps
     </button>
   </div>
+  <div style="padding:0 20px">
+    <button class="maps-btn" style="background:#FAFDF9;border-color:#EDECE8;color:#5F5E5A" onclick="shareTrip()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+      <span id="share-btn-label">Share this trip</span>
+    </button>
+  </div>
   <div style="padding:12px 20px">
     <div class="back-link" onclick="resetToInput()">Plan a different drive</div>
   </div>
@@ -316,11 +322,26 @@ input,select,button{font-family:inherit}
     <div style="font-size:20px;font-weight:600;color:#2C2C2A;margin-bottom:8px">Straight through — no stop needed!</div>
     <div style="font-size:15px;color:#5F5E5A;line-height:1.5" id="nostop-msg"></div>
     <div id="nostop-svg" style="margin:16px 0"></div>
+    <div id="roundtrip-section" style="display:none">
+      <div style="height:1px;background:#EDECE8;margin:20px 0"></div>
+      <button class="loc-btn" style="justify-content:center;margin-bottom:12px" onclick="showRoundTrip()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        Planning a return trip?
+      </button>
+      <div id="roundtrip-detail" style="display:none;text-align:left">
+        <div style="background:#FAFDF9;border:1.5px solid #EDECE8;border-radius:14px;padding:16px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:6px">QUICK STOP ON THE WAY BACK</div>
+          <div style="font-size:15px;color:#2C2C2A;line-height:1.5" id="roundtrip-msg"></div>
+          <div id="roundtrip-charger" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
     <button class="maps-btn" onclick="openInMaps()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
       Open route in Google Maps
     </button>
-    <div class="back-link" style="margin-top:16px" onclick="resetToInput()">Plan another trip</div>
+    <div id="share-nostop" style="margin-top:8px"></div>
+    <div class="back-link" style="margin-top:12px" onclick="resetToInput()">Plan another trip</div>
   </div>
 </div>
 
@@ -545,11 +566,32 @@ async function runSearch() {
   if (searchResult.noStopNeeded) {
     document.getElementById('nostop-msg').textContent = searchResult.noStopMessage;
     document.getElementById('nostop-svg').innerHTML = routeSVG([], null);
+    // Round trip section
+    var rtSection = document.getElementById('roundtrip-section');
+    var rtDetail = document.getElementById('roundtrip-detail');
+    rtDetail.style.display = 'none';
+    if (searchResult.roundTripNeedsCharge && searchResult.roundTripStop) {
+      rtSection.style.display = '';
+      var rt = searchResult.roundTripStop;
+      document.getElementById('roundtrip-msg').textContent = rt.message;
+      document.getElementById('roundtrip-charger').innerHTML =
+        '<div style="display:flex;align-items:center;gap:10px;padding:10px 0">' +
+          '<div style="width:36px;height:36px;border-radius:10px;background:#E8F7F1;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
+            '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' +
+          '</div>' +
+          '<div><div style="font-size:14px;font-weight:500;color:#2C2C2A">'+rt.name+'</div>' +
+          '<div style="font-size:12px;color:#888780">'+rt.network+' · '+rt.kw+'kW · ~'+rt.chargeMinutes+' min</div></div>' +
+        '</div>';
+    } else {
+      rtSection.style.display = 'none';
+    }
+    updateShareURL();
     showScreen('screen-nostop');
     return;
   }
 
   renderRoutes();
+  updateShareURL();
   showScreen('screen-routes');
 }
 
@@ -725,8 +767,80 @@ function initAutocomplete() {
   toInput.addEventListener('keydown', function(e){ if(e.key==='Enter') e.preventDefault(); });
 }
 
+// ── Round trip reveal ─────────────────────────────────────────────────
+function showRoundTrip() {
+  document.getElementById('roundtrip-detail').style.display = '';
+}
+
+// ── Shareable URLs ───────────────────────────────────────────────────
+function buildShareURL() {
+  var params = new URLSearchParams();
+  if (formData.origin) params.set('from', formData.origin);
+  if (formData.destination) params.set('to', formData.destination);
+  if (formData.vehicle) params.set('v', formData.vehicle);
+  if (formData.party) params.set('w', formData.party);
+  return window.location.origin + window.location.pathname + '?' + params.toString();
+}
+
+function updateShareURL() {
+  // Update browser URL without reload
+  var url = buildShareURL();
+  history.replaceState(null, '', url);
+}
+
+function shareTrip() {
+  var url = buildShareURL();
+  var title = formData.origin.split(',')[0] + ' → ' + formData.destination.split(',')[0] + ' — ChargeWell';
+
+  if (navigator.share) {
+    navigator.share({ title: title, url: url }).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(url).then(function() {
+      var label = document.getElementById('share-btn-label');
+      label.textContent = 'Link copied!';
+      setTimeout(function(){ label.textContent = 'Share this trip'; }, 2000);
+    }).catch(function(){});
+  }
+}
+
+// ── Load from URL parameters on startup ──────────────────────────────
+function checkURLParams() {
+  var params = new URLSearchParams(window.location.search);
+  var from = params.get('from');
+  var to = params.get('to');
+  var v = params.get('v');
+  var w = params.get('w');
+
+  if (from && to) {
+    formData.origin = from;
+    formData.destination = to;
+    document.getElementById('inp-from').value = from;
+    document.getElementById('inp-to').value = to;
+
+    if (v) {
+      formData.vehicle = v;
+      document.querySelectorAll('.pill').forEach(function(p){
+        p.classList.toggle('selected', p.textContent === VEHICLES.find(function(veh){ return veh.id === v; })?.label);
+      });
+    }
+    if (w) {
+      formData.party = w;
+      document.querySelectorAll('.party-btn').forEach(function(b){
+        b.classList.toggle('selected', b.querySelector('span').textContent === w);
+      });
+    }
+
+    // Auto-run the search
+    runSearch();
+    return true;
+  }
+  return false;
+}
+
 loadMapsAPI();
-showStep(1);
+if (!checkURLParams()) {
+  showStep(1);
+}
 </script>
 </body>
 </html>

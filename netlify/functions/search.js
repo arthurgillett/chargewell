@@ -90,9 +90,70 @@ exports.handler = async (event) => {
       `Good news — your ${vehicleName(vehicle)} can do this ${mi}-mile trip on a single charge. You'll arrive with roughly ${arrivalPct}% left. More time for snacks at the destination.`,
       `No pit stop required! At ${mi} miles, your ${vehicleName(vehicle)} will arrive with about ${arrivalPct}% battery to spare. That's what we call range confidence.`,
     ];
+
+    // Check if a round trip would need charging
+    const roundTripMi = mi * 2;
+    const roundTripArrival = Math.round((1 - roundTripMi / rangeMi) * 100);
+    let roundTripStop = null;
+
+    if (roundTripArrival < 15) {
+      // Need a charge for the return — find chargers near the destination (last third of route)
+      const destPoints = routePoints.slice(Math.max(0, routePoints.length - 3));
+      if (destPoints.length === 0 && routeLegs.length) {
+        const lastLeg = routeLegs[routeLegs.length - 1];
+        destPoints.push({ lat: lastLeg.end_location.lat, lng: lastLeg.end_location.lng });
+      }
+      try {
+        const nearDestPromises = destPoints.map(pt =>
+          fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=25&limit=3`)
+            .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
+        );
+        const nearResults = await Promise.all(nearDestPromises);
+        const seen = new Set();
+        const nearChargers = [];
+        nearResults.flat().forEach(s => {
+          if (!s.id || seen.has(s.id) || !s.latitude || !s.longitude) return;
+          seen.add(s.id);
+          nearChargers.push({
+            id: s.id,
+            name: s.station_name || `Charger ${s.id}`,
+            address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
+            lat: s.latitude, lng: s.longitude,
+            network: s.ev_network || "Unknown",
+            kw: Math.min(s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50, 350),
+          });
+        });
+
+        if (nearChargers.length) {
+          // Pick the first one (closest to destination area)
+          const charger = nearChargers[0];
+          // Calculate how much charge is needed: after round trip you want 15%
+          const batteryAfterReturn = 1 - roundTripMi / rangeMi;
+          const chargeNeeded = Math.max(0, 0.15 - batteryAfterReturn); // get to at least 15%
+          const kwhNeeded = chargeNeeded * batteryKwh;
+          const effectiveKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw);
+          const chargeMinutes = Math.max(8, Math.round((kwhNeeded / effectiveKw) * 60));
+          const homeArrivalPct = Math.round((batteryAfterReturn + chargeNeeded) * 100);
+
+          roundTripStop = {
+            ...charger,
+            chargeMinutes,
+            homeArrivalPct,
+            message: `Grab ${chargeMinutes} minutes at ${charger.name.split(' - ')[0].split(',')[0]} on your way back — you'll get home with about ${homeArrivalPct}% battery.`
+          };
+        }
+      } catch (e) { /* no round trip suggestion */ }
+    }
+
     return {
       statusCode: 200, headers: HEADERS,
-      body: JSON.stringify({ noStopNeeded: true, noStopMessage: messages[Math.floor(Math.random() * messages.length)], totalDistanceMi: mi, arrivalPct, polyline: routePolyline, totalDriveMinutes })
+      body: JSON.stringify({
+        noStopNeeded: true,
+        noStopMessage: messages[Math.floor(Math.random() * messages.length)],
+        totalDistanceMi: mi, arrivalPct, polyline: routePolyline, totalDriveMinutes,
+        roundTripNeedsCharge: roundTripArrival < 15,
+        roundTripStop
+      })
     };
   }
 
