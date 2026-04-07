@@ -176,43 +176,54 @@ exports.handler = async (event) => {
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
   try {
-    // All NREL requests in parallel to fit within Netlify's 10s function timeout
-    const results = await Promise.all(routePoints.map(pt =>
-      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=15&limit=4`)
+    // Use 3 wide-radius queries to cover the route in chunks
+    // This avoids rate limiting from many parallel requests
+    const queryPoints = [];
+    const numQueries = Math.min(3, routePoints.length);
+    for (let i = 0; i < numQueries; i++) {
+      const idx = Math.round((i + 0.5) * routePoints.length / numQueries);
+      queryPoints.push(routePoints[Math.min(idx, routePoints.length - 1)]);
+    }
+
+    const results = await Promise.all(queryPoints.map(pt =>
+      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=100&limit=50`)
         .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
     ));
     const seen = new Set();
 
     // Process per-sample-point so we can use the point's known route distance/time
-    // Assign each charger to its CLOSEST sample point (not first-seen)
-    // to get the most accurate route distance
-    const chargerMap = {}; // id → charger data
-    results.forEach((stations, ptIdx) => {
-      const pt = routePoints[ptIdx];
-      const ptRouteMi = Math.round(pt.routeDistMeters / 1609.344);
-      const ptRouteMin = Math.round(pt.routeTimeSec / 60);
+    // Deduplicate and assign route distance by finding closest sample point
+    const chargerMap = {};
+    const allStations = results.flat();
+    allStations.forEach(s => {
+      if (!s.id || !s.latitude || !s.longitude) return;
+      if (chargerMap[s.id]) return; // already seen
 
-      stations.forEach(s => {
-        if (!s.id || !s.latitude || !s.longitude) return;
-        const id = s.id;
-        const distToPoint = Math.pow(s.latitude - pt.lat, 2) + Math.pow(s.longitude - pt.lng, 2);
+      // Find the closest route sample point to estimate route distance
+      let bestDist = Infinity, bestPt = routePoints[0];
+      for (const pt of routePoints) {
+        const d = Math.pow(s.latitude - pt.lat, 2) + Math.pow(s.longitude - pt.lng, 2);
+        if (d < bestDist) { bestDist = d; bestPt = pt; }
+      }
+      const ptRouteMi = Math.round(bestPt.routeDistMeters / 1609.344);
+      const ptRouteMin = Math.round(bestPt.routeTimeSec / 60);
 
-        if (!chargerMap[id] || distToPoint < chargerMap[id]._distToPoint) {
-          const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
-          chargerMap[id] = {
-            id, name: s.station_name || `Charger ${id}`,
-            address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
-            lat: s.latitude, lng: s.longitude,
-            network: s.ev_network || "Unknown network",
-            kw: Math.min(maxKw, 350),
-            distanceFromOriginMi: ptRouteMi,
-            driveMinutesFromOrigin: ptRouteMin,
-            _distToPoint: distToPoint
-          };
-        }
-      });
+      // Only keep chargers within ~15 miles of the route
+      const distFromRouteMi = Math.sqrt(bestDist) * 69; // rough degrees→miles
+      if (distFromRouteMi > 15) return;
+
+      const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
+      chargerMap[s.id] = {
+        id: s.id, name: s.station_name || `Charger ${s.id}`,
+        address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
+        lat: s.latitude, lng: s.longitude,
+        network: s.ev_network || "Unknown network",
+        kw: Math.min(maxKw, 350),
+        distanceFromOriginMi: ptRouteMi,
+        driveMinutesFromOrigin: ptRouteMin
+      };
     });
-    chargers = Object.values(chargerMap).map(c => { delete c._distToPoint; return c; });
+    chargers = Object.values(chargerMap);
 
     chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
 
