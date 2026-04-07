@@ -199,8 +199,10 @@ exports.handler = async (event) => {
 
     chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
 
-    // Filter out stops within first 80 minutes of driving
-    chargers = chargers.filter(c => c.driveMinutesFromOrigin >= 80);
+    // Filter out very early stops — don't suggest stopping in the first 20% of the trip
+    // or first 45 minutes, whichever is shorter
+    const minDriveMinutes = Math.min(45, totalDriveMinutes * 0.2);
+    chargers = chargers.filter(c => c.driveMinutesFromOrigin >= minDriveMinutes);
 
     chargers = chargers.slice(0, 8);
   } catch (e) {
@@ -356,7 +358,7 @@ Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min 
 Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi HIGHWAY range at 75mph — this is already reduced from EPA, use this number as the real max between charges)
 Travellers: ${travellerType || "Family"}
 
-Available DC fast chargers along route (already filtered — all are 80+ min from start):
+Available DC fast chargers along route (already filtered — no very early stops):
 ${chargerSummary}
 
 CRITICAL FEASIBILITY RULE: The driver starts at 100% and after each charge gets to about 85% (${Math.round(rangeMi * 0.85)} miles of range). EVERY leg must be shorter than the available range:
