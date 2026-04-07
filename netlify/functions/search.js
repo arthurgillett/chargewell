@@ -240,7 +240,8 @@ exports.handler = async (event) => {
       strategies: strategiesWithGrades,
       totalDistanceMi: totalMi,
       totalDriveMinutes,
-      polyline: routePolyline
+      polyline: routePolyline,
+      _debug: { rawStrategies: strategies.length, withGrades: strategiesWithGrades.length, chargerCount: chargers.length }
     })
   };
 };
@@ -401,7 +402,9 @@ Reply ONLY with a JSON array:
       body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, messages: [{ role: "user", content: prompt }] })
     });
     const json = await res.json();
+    console.log('Haiku strategy response:', JSON.stringify(json).slice(0, 500));
     const text = json.content?.[0]?.text || "[]";
+    console.log('Haiku text:', text.slice(0, 300));
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       const strategies = JSON.parse(match[0]);
