@@ -472,16 +472,54 @@ function pickSuggestion(field, val) {
 }
 
 function useMyLocation() {
-  if (!navigator.geolocation) return;
+  if (!navigator.geolocation) {
+    alert('Location is not available on this device.');
+    return;
+  }
+  var btn = document.querySelector('.loc-btn');
+  var origHTML = btn.innerHTML;
+  btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;margin:0"></div> Finding you\u2026';
+  btn.disabled = true;
+
   navigator.geolocation.getCurrentPosition(function(pos) {
-    var val = pos.coords.latitude.toFixed(5) + ',' + pos.coords.longitude.toFixed(5);
-    formData.origin = val;
-    document.getElementById('inp-from').value = 'My location';
-    updateCTAState();
-    nextStep();
-  }, function() {
-    // Fail silently — user can type instead
-  });
+    var lat = pos.coords.latitude;
+    var lng = pos.coords.longitude;
+    var coords = lat.toFixed(5) + ',' + lng.toFixed(5);
+
+    // Try to reverse-geocode to a readable name via Places
+    if (window.google && google.maps && google.maps.Geocoder) {
+      var geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+        btn.innerHTML = origHTML;
+        btn.disabled = false;
+        if (status === 'OK' && results && results[0]) {
+          var addr = results[0].formatted_address;
+          formData.origin = addr;
+          document.getElementById('inp-from').value = addr;
+        } else {
+          formData.origin = coords;
+          document.getElementById('inp-from').value = 'My location (' + coords + ')';
+        }
+        updateCTAState();
+        nextStep();
+      });
+    } else {
+      btn.innerHTML = origHTML;
+      btn.disabled = false;
+      formData.origin = coords;
+      document.getElementById('inp-from').value = 'My location (' + coords + ')';
+      updateCTAState();
+      nextStep();
+    }
+  }, function(err) {
+    btn.innerHTML = origHTML;
+    btn.disabled = false;
+    if (err.code === 1) {
+      alert('Location access was denied. You can type your starting point instead.');
+    } else {
+      alert('Could not get your location. Try typing your starting point instead.');
+    }
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
 }
 
 function pickVehicle(id, el) {
