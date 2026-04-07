@@ -38,17 +38,31 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: "origin and destination required" }) };
   }
 
+  // ── Step 0: Resolve vague locations via Geocoding ─────────────────────
+  let resolvedOrigin = origin;
+  let resolvedDest = destination;
+  try {
+    const [ro, rd] = await Promise.all([
+      resolveLocation(origin),
+      resolveLocation(destination)
+    ]);
+    resolvedOrigin = ro;
+    resolvedDest = rd;
+  } catch (e) {
+    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: `Could not resolve locations: ${e.message}` }) };
+  }
+
   // ── Step 1: Get route from Google Directions ──────────────────────────
   let routePoints = [];
   let totalDistanceMeters = 0;
   let totalDurationSeconds = 0;
   let routeLegs, routePolyline;
   try {
-    const dirUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&key=${GOOGLE_API_KEY}`;
+    const dirUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(resolvedOrigin)}&destination=${encodeURIComponent(resolvedDest)}&key=${GOOGLE_API_KEY}`;
     const dirRes = await fetch(dirUrl);
     const dirJson = await dirRes.json();
     if (!dirJson.routes?.length) {
-      throw new Error(`${dirJson.status || "UNKNOWN"}: ${dirJson.error_message || "No routes returned"}`);
+      throw new Error(`${dirJson.status || "UNKNOWN"}: ${dirJson.error_message || "No routes returned. Try a more specific address."}`);
     }
     const route = dirJson.routes[0];
     routeLegs = route.legs;
@@ -383,6 +397,31 @@ function vehicleName(key) {
     lucid_air: "Lucid Air", cadillac_lyriq: "Lyriq", polestar_2: "Polestar 2", nissan_ariya: "Ariya",
   };
   return names[key] || "EV";
+}
+
+// Resolve locations that Directions can't route to directly.
+// Uses Places Find Place to turn vague regions into specific addresses.
+async function resolveLocation(input) {
+  if (!input) throw new Error("Empty location");
+
+  // Raw lat,lng — use directly (Directions handles these fine)
+  if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(input.trim())) return input.trim();
+
+  // Try Places Find Place to get a specific routable location
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(input)}&inputtype=textquery&fields=formatted_address,geometry&key=${GOOGLE_API_KEY}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.candidates && json.candidates.length > 0) {
+      const c = json.candidates[0];
+      // If we got a formatted address, use it — more specific than the input
+      if (c.formatted_address) return c.formatted_address;
+      // Otherwise use the lat/lng
+      if (c.geometry?.location) return `${c.geometry.location.lat},${c.geometry.location.lng}`;
+    }
+  } catch (e) { /* fall through to original input */ }
+
+  return input;
 }
 
 function sampleRoutePoints(route, intervalMeters) {
