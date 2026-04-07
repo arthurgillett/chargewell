@@ -180,7 +180,7 @@ exports.handler = async (event) => {
     const results = [];
     for (const pt of routePoints) {
       try {
-        const r = await fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=40&limit=4`);
+        const r = await fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=15&limit=4`);
         const j = await r.json();
         results.push(j.fuel_stations || []);
       } catch (e) {
