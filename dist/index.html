@@ -601,6 +601,17 @@ async function runSearch() {
 
   if (searchResult.polyline) decodedPolyline = decodePolyline(searchResult.polyline);
 
+  // Handle too-far trips
+  if (searchResult.tooFar) {
+    document.getElementById('nostop-msg').textContent = searchResult.message;
+    document.getElementById('nostop-svg').innerHTML = routePolyline ? routeSVG([], null) : '';
+    document.getElementById('roundtrip-section').style.display = 'none';
+    document.querySelector('#screen-nostop div:first-child > div:first-child').textContent = '🗺️';
+    document.querySelector('#screen-nostop div:first-child > div:nth-child(2)').textContent = 'That\'s a big one!';
+    showScreen('screen-nostop');
+    return;
+  }
+
   if (searchResult.noStopNeeded) {
     document.getElementById('nostop-msg').textContent = searchResult.noStopMessage;
     document.getElementById('nostop-svg').innerHTML = routeSVG([], null);

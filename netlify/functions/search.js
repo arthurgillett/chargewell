@@ -83,6 +83,20 @@ exports.handler = async (event) => {
   const totalDriveMinutes = Math.round(totalDurationSeconds / 60);
   const arrivalPct = Math.round((1 - totalDistanceMi / rangeMi) * 100);
 
+  // ── Cap at 1000 miles for now ─────────────────────────────────────────
+  if (totalMi > 1000) {
+    return {
+      statusCode: 200, headers: HEADERS,
+      body: JSON.stringify({
+        tooFar: true,
+        totalDistanceMi: totalMi,
+        totalDriveMinutes,
+        polyline: routePolyline,
+        message: `That's a ${totalMi}-mile trip — we're not quite ready for that yet. ChargeWell works best for trips under 1,000 miles. We're working on cross-country support.`
+      })
+    };
+  }
+
   // ── Check if trip is within range (arrive with 20%+ battery) ──────────
   if (arrivalPct >= 20) {
     const mi = Math.round(totalDistanceMi);
@@ -230,23 +244,11 @@ exports.handler = async (event) => {
   // ── Step 3: Detect thin coverage zones ────────────────────────────────
   const thinCoverageInfo = detectThinCoverage(chargers, totalMi);
 
-  // ── Step 4: Grade chargers + generate strategies ───────────────────────
-  // For long trips (700+ miles), skip Haiku strategies — build algorithmically
-  const needsAlgoRoute = totalMi > 700;
-
-  let strategies, graded;
-  if (needsAlgoRoute) {
-    // Build strategies first, then only grade chargers that appear in them
-    strategies = buildAlgoStrategies(chargers, totalMi, rangeMi);
-    const usedIds = new Set(strategies.flatMap(s => (s.stopIds || []).map(String)));
-    const chargersToGrade = chargers.filter(c => usedIds.has(String(c.id)));
-    graded = await Promise.all(chargersToGrade.map(c => gradeCharger(c, travellerType, vehicle, thinCoverageInfo)));
-  } else {
-    [graded, strategies] = await Promise.all([
-      Promise.all(chargers.map(c => gradeCharger(c, travellerType, vehicle, thinCoverageInfo))),
-      generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle)
-    ]);
-  }
+  // ── Step 4: Grade chargers + generate strategies in parallel ──────────
+  const [graded, strategies] = await Promise.all([
+    Promise.all(chargers.map(c => gradeCharger(c, travellerType, vehicle, thinCoverageInfo))),
+    generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle)
+  ]);
 
   const gradedById = {};
   graded.forEach(c => { gradedById[String(c.id)] = c; });
@@ -267,7 +269,6 @@ exports.handler = async (event) => {
       totalDistanceMi: totalMi,
       totalDriveMinutes,
       polyline: routePolyline,
-      _debug: { samplePoints: routePoints.length, rawChargers: chargers.length, rawStrategies: strategies.length, withGrades: strategiesWithGrades.length, haiku: generateStrategies._lastResponse || null }
     })
   };
 };
@@ -410,7 +411,6 @@ Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
     const json = await res.json();
     const text = json.content?.[0]?.text || "[]";
     // Store for debug
-    generateStrategies._lastResponse = { type: json.type, error: json.error, textPreview: text.slice(0, 200) };
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       const strategies = JSON.parse(match[0]);
@@ -495,72 +495,6 @@ Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
   return [{ name: "The Route", tagline: "Best available stops", emoji: "⚡", recommended: true, stopIds: fallbackStops }];
 }
 
-// ── Algorithmic route building for long trips ────────────────────────────
-function buildAlgoStrategies(chargers, totalMi, rangeMi) {
-  // Build a "max progress" route — pick the furthest reachable charger at each step
-  function buildRoute(chargers, totalMi, rangeMi, aggressiveness) {
-    const stops = [];
-    let prevMi = 0;
-    let currentRange = rangeMi;
-    const threshold = currentRange * aggressiveness;
-
-    while (prevMi + currentRange < totalMi) {
-      const reachable = chargers.filter(c =>
-        c.distanceFromOriginMi > prevMi + 30 &&
-        c.distanceFromOriginMi <= prevMi + currentRange * aggressiveness
-      );
-      if (!reachable.length) break;
-      const best = reachable[reachable.length - 1];
-      stops.push(best.id);
-      prevMi = best.distanceFromOriginMi;
-      currentRange = rangeMi * 0.85;
-    }
-    return stops;
-  }
-
-  // "Push it" — stop as late as possible each time (fewer, longer stops)
-  const fewerStops = buildRoute(chargers, totalMi, rangeMi, 0.9);
-  // "Take it easy" — stop more frequently (more, shorter stops)
-  const moreStops = buildRoute(chargers, totalMi, rangeMi, 0.65);
-
-  const strategies = [];
-  // Check if routes cover the full trip
-  const fewerCovers = fewerStops.length > 0 && coversRoute(fewerStops, chargers, totalMi, rangeMi);
-  const moreCovers = moreStops.length > 0 && coversRoute(moreStops, chargers, totalMi, rangeMi);
-
-  if (fewerStops.length > 0) {
-    strategies.push({
-      name: "The Long Hauler",
-      tagline: fewerStops.length + " stops, maximize driving between charges" + (!fewerCovers ? " (partial — charger data limited in some areas)" : ""),
-      emoji: "🛣️",
-      recommended: true,
-      stopIds: fewerStops
-    });
-  }
-  if (moreStops.length > 0 && moreStops.length !== fewerStops.length) {
-    strategies.push({
-      name: "The Easy Rider",
-      tagline: moreStops.length + " stops, shorter legs and more breaks" + (!moreCovers ? " (partial — charger data limited in some areas)" : ""),
-      emoji: "☀️",
-      recommended: false,
-      stopIds: moreStops
-    });
-  }
-
-  if (!strategies.length) {
-    return [{ name: "The Route", tagline: "Best available stops", emoji: "⚡", recommended: true, stopIds: chargers.slice(0, 1).map(c => c.id) }];
-  }
-  return strategies;
-}
-
-function coversRoute(stopIds, chargers, totalMi, rangeMi) {
-  const chargerById = {};
-  chargers.forEach(c => { chargerById[String(c.id)] = c; });
-  const stops = stopIds.map(id => chargerById[String(id)]).filter(Boolean).sort((a,b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
-  if (!stops.length) return false;
-  const lastStopMi = stops[stops.length - 1].distanceFromOriginMi;
-  return (totalMi - lastStopMi) <= rangeMi * 0.85;
-}
 
 async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {
   let places = [];
