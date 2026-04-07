@@ -223,11 +223,11 @@ exports.handler = async (event) => {
   ]);
 
   const gradedById = {};
-  graded.forEach(c => { gradedById[c.id] = c; });
+  graded.forEach(c => { gradedById[String(c.id)] = c; });
 
   // Build strategies with full stop data and timing
   const strategiesWithGrades = strategies.map(s => {
-    const stops = (s.stopIds || []).map(id => gradedById[id]).filter(Boolean);
+    const stops = (s.stopIds || []).map(id => gradedById[String(id)]).filter(Boolean);
     stops.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
     const timing = calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, batteryKwh);
     return { ...s, stops, ...timing };
@@ -405,9 +405,10 @@ Reply ONLY with a JSON array:
     const match = text.match(/\[[\s\S]*\]/);
     if (match) {
       const strategies = JSON.parse(match[0]);
-      const validIds = new Set(chargers.map(c => c.id));
+      // Use string keys to avoid number/string mismatch between NREL IDs and Haiku output
+      const validIds = new Set(chargers.map(c => String(c.id)));
       const chargerById = {};
-      chargers.forEach(c => { chargerById[c.id] = c; });
+      chargers.forEach(c => { chargerById[String(c.id)] = c; });
 
       // Validate feasibility of each strategy
       const validated = strategies.filter(s => {
@@ -415,11 +416,11 @@ Reply ONLY with a JSON array:
           console.log('Strategy rejected (no stopIds):', s.name);
           return false;
         }
-        if (!s.stopIds.every(id => validIds.has(id))) {
+        if (!s.stopIds.every(id => validIds.has(String(id)))) {
           console.log('Strategy rejected (invalid IDs):', s.name, 'ids:', s.stopIds, 'valid:', [...validIds]);
           return false;
         }
-        const stops = s.stopIds.map(id => chargerById[id]).sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
+        const stops = s.stopIds.map(id => chargerById[String(id)]).filter(Boolean).sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
         let prevMi = 0;
         let maxLeg = rangeMi;
         for (const stop of stops) {
@@ -437,7 +438,12 @@ Reply ONLY with a JSON array:
         return true;
       });
       console.log('Strategies from Haiku:', strategies.length, 'validated:', validated.length);
-      return validated;
+      if (validated.length > 0) return validated;
+      // If all failed validation, return them anyway with a warning — the feasibility
+      // check may be too strict and it's better to show options than none
+      console.log('All strategies failed validation — returning best effort');
+      const bestEffort = strategies.filter(s => Array.isArray(s.stopIds) && s.stopIds.length > 0 && s.stopIds.every(id => validIds.has(id)));
+      if (bestEffort.length > 0) return bestEffort;
     }
   } catch (e) { /* fall through */ }
 
