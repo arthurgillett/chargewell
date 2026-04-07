@@ -410,20 +410,34 @@ Reply ONLY with a JSON array:
       chargers.forEach(c => { chargerById[c.id] = c; });
 
       // Validate feasibility of each strategy
-      return strategies.filter(s => {
-        if (!Array.isArray(s.stopIds) || !s.stopIds.length || !s.stopIds.every(id => validIds.has(id))) return false;
-        // Check each leg
+      const validated = strategies.filter(s => {
+        if (!Array.isArray(s.stopIds) || !s.stopIds.length) {
+          console.log('Strategy rejected (no stopIds):', s.name);
+          return false;
+        }
+        if (!s.stopIds.every(id => validIds.has(id))) {
+          console.log('Strategy rejected (invalid IDs):', s.name, 'ids:', s.stopIds, 'valid:', [...validIds]);
+          return false;
+        }
         const stops = s.stopIds.map(id => chargerById[id]).sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
         let prevMi = 0;
-        let maxLeg = rangeMi; // first leg from 100%
+        let maxLeg = rangeMi;
         for (const stop of stops) {
-          if (stop.distanceFromOriginMi - prevMi > maxLeg) return false;
+          if (stop.distanceFromOriginMi - prevMi > maxLeg) {
+            console.log('Strategy rejected (leg too long):', s.name, 'leg:', prevMi, '→', stop.distanceFromOriginMi, 'max:', maxLeg);
+            return false;
+          }
           prevMi = stop.distanceFromOriginMi;
-          maxLeg = rangeMi * 0.85; // subsequent legs from ~85% charge
+          maxLeg = rangeMi * 0.85;
         }
-        if (totalMi - prevMi > maxLeg) return false; // last leg to destination
+        if (totalMi - prevMi > maxLeg) {
+          console.log('Strategy rejected (final leg):', s.name, 'leg:', prevMi, '→', totalMi, 'max:', maxLeg);
+          return false;
+        }
         return true;
       });
+      console.log('Strategies from Haiku:', strategies.length, 'validated:', validated.length);
+      return validated;
     }
   } catch (e) { /* fall through */ }
 
