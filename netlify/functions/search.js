@@ -69,8 +69,8 @@ exports.handler = async (event) => {
     routePolyline = route.overview_polyline?.points || "";
     totalDistanceMeters = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
     totalDurationSeconds = route.legs.reduce((sum, leg) => sum + leg.duration.value, 0);
-        // Target ~8 sample points — enough coverage while staying fast
-    const sampleInterval = Math.max(30000, Math.round(totalDistanceMeters / 8));
+        // Many sample points for accurate distance matching (these are just used for mapping, not API calls)
+    const sampleInterval = Math.max(10000, Math.round(totalDistanceMeters / 30));
     routePoints = sampleRoutePoints(route, sampleInterval);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
