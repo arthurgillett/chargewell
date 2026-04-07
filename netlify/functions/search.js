@@ -69,8 +69,8 @@ exports.handler = async (event) => {
     routePolyline = route.overview_polyline?.points || "";
     totalDistanceMeters = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
     totalDurationSeconds = route.legs.reduce((sum, leg) => sum + leg.duration.value, 0);
-        // Target ~12 sample points regardless of trip length — enough coverage without hammering NREL
-    const sampleInterval = Math.max(25000, Math.round(totalDistanceMeters / 12));
+        // Target ~8 sample points — enough coverage while staying fast
+    const sampleInterval = Math.max(30000, Math.round(totalDistanceMeters / 8));
     routePoints = sampleRoutePoints(route, sampleInterval);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
@@ -176,17 +176,11 @@ exports.handler = async (event) => {
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
   try {
-    // Query sample points sequentially to avoid NREL rate limiting
-    const results = [];
-    for (const pt of routePoints) {
-      try {
-        const r = await fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=15&limit=4`);
-        const j = await r.json();
-        results.push(j.fuel_stations || []);
-      } catch (e) {
-        results.push([]);
-      }
-    }
+    // All NREL requests in parallel to fit within Netlify's 10s function timeout
+    const results = await Promise.all(routePoints.map(pt =>
+      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=15&limit=4`)
+        .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
+    ));
     const seen = new Set();
 
     // Process per-sample-point so we can use the point's known route distance/time
