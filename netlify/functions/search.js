@@ -169,7 +169,12 @@ exports.handler = async (event) => {
       const batch = routePoints.slice(i, i + batchSize);
       const batchResults = await Promise.all(batch.map(pt =>
         fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=25&limit=4`)
-          .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
+          .then(r => r.json())
+          .then(j => {
+            if (j.errors || j.error) console.log('NREL error at', pt.lat, pt.lng, ':', JSON.stringify(j.errors || j.error));
+            return j.fuel_stations || [];
+          })
+          .catch(e => { console.log('NREL fetch failed at', pt.lat, pt.lng, ':', e.message); return []; })
       ));
       results.push(...batchResults);
     }
@@ -262,7 +267,7 @@ exports.handler = async (event) => {
       totalDistanceMi: totalMi,
       totalDriveMinutes,
       polyline: routePolyline,
-      _debug: { rawStrategies: strategies.length, withGrades: strategiesWithGrades.length, chargerCount: chargers.length, haiku: generateStrategies._lastResponse || null }
+      _debug: { samplePoints: routePoints.length, rawChargers: chargers.length, rawStrategies: strategies.length, withGrades: strategiesWithGrades.length, haiku: generateStrategies._lastResponse || null }
     })
   };
 };
