@@ -69,8 +69,8 @@ exports.handler = async (event) => {
     routePolyline = route.overview_polyline?.points || "";
     totalDistanceMeters = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
     totalDurationSeconds = route.legs.reduce((sum, leg) => sum + leg.duration.value, 0);
-        // Sample interval: 20km for short trips, scale up for long trips to stay under ~30 API calls
-    const sampleInterval = Math.max(20000, Math.round(totalDistanceMeters / 25));
+        // Target ~12 sample points regardless of trip length — enough coverage without hammering NREL
+    const sampleInterval = Math.max(25000, Math.round(totalDistanceMeters / 12));
     routePoints = sampleRoutePoints(route, sampleInterval);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
@@ -176,21 +176,16 @@ exports.handler = async (event) => {
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
   try {
-    // Query sample points in batches of 8 to avoid rate limiting
+    // Query sample points sequentially to avoid NREL rate limiting
     const results = [];
-    const batchSize = 8;
-    for (let i = 0; i < routePoints.length; i += batchSize) {
-      const batch = routePoints.slice(i, i + batchSize);
-      const batchResults = await Promise.all(batch.map(pt =>
-        fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=25&limit=4`)
-          .then(r => r.json())
-          .then(j => {
-            if (j.errors || j.error) console.log('NREL error at', pt.lat, pt.lng, ':', JSON.stringify(j.errors || j.error));
-            return j.fuel_stations || [];
-          })
-          .catch(e => { console.log('NREL fetch failed at', pt.lat, pt.lng, ':', e.message); return []; })
-      ));
-      results.push(...batchResults);
+    for (const pt of routePoints) {
+      try {
+        const r = await fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=40&limit=4`);
+        const j = await r.json();
+        results.push(j.fuel_stations || []);
+      } catch (e) {
+        results.push([]);
+      }
     }
     const seen = new Set();
 
