@@ -190,32 +190,35 @@ exports.handler = async (event) => {
     const seen = new Set();
 
     // Process per-sample-point so we can use the point's known route distance/time
+    // Assign each charger to its CLOSEST sample point (not first-seen)
+    // to get the most accurate route distance
+    const chargerMap = {}; // id → charger data
     results.forEach((stations, ptIdx) => {
       const pt = routePoints[ptIdx];
       const ptRouteMi = Math.round(pt.routeDistMeters / 1609.344);
       const ptRouteMin = Math.round(pt.routeTimeSec / 60);
 
       stations.forEach(s => {
+        if (!s.id || !s.latitude || !s.longitude) return;
         const id = s.id;
-        if (!id || seen.has(id)) return;
-        seen.add(id);
-        if (!s.latitude || !s.longitude) return;
+        const distToPoint = Math.pow(s.latitude - pt.lat, 2) + Math.pow(s.longitude - pt.lng, 2);
 
-        const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
-
-        // Use the sample point's route distance as the charger's approximate route distance
-        // This is much more accurate than haversine from origin for curvy routes
-        chargers.push({
-          id, name: s.station_name || `Charger ${id}`,
-          address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
-          lat: s.latitude, lng: s.longitude,
-          network: s.ev_network || "Unknown network",
-          kw: Math.min(maxKw, 350),
-          distanceFromOriginMi: ptRouteMi,
-          driveMinutesFromOrigin: ptRouteMin
-        });
+        if (!chargerMap[id] || distToPoint < chargerMap[id]._distToPoint) {
+          const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
+          chargerMap[id] = {
+            id, name: s.station_name || `Charger ${id}`,
+            address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
+            lat: s.latitude, lng: s.longitude,
+            network: s.ev_network || "Unknown network",
+            kw: Math.min(maxKw, 350),
+            distanceFromOriginMi: ptRouteMi,
+            driveMinutesFromOrigin: ptRouteMin,
+            _distToPoint: distToPoint
+          };
+        }
       });
     });
+    chargers = Object.values(chargerMap).map(c => { delete c._distToPoint; return c; });
 
     chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
 
