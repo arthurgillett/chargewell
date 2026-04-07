@@ -232,9 +232,24 @@ exports.handler = async (event) => {
     const minDriveMinutes = Math.min(45, totalDriveMinutes * 0.2);
     chargers = chargers.filter(c => c.driveMinutesFromOrigin >= minDriveMinutes);
 
-    // Keep enough chargers to cover the route — roughly 1 per 100 miles, minimum 10
+    // Keep chargers spread across the route — pick the best from each segment
     const maxChargers = Math.max(10, Math.ceil(totalMi / 100));
-    chargers = chargers.slice(0, maxChargers);
+    if (chargers.length > maxChargers) {
+      // Divide route into segments and pick the highest-kW charger from each
+      const segmentMi = totalMi / maxChargers;
+      const kept = [];
+      for (let seg = 0; seg < maxChargers; seg++) {
+        const segStart = seg * segmentMi;
+        const segEnd = (seg + 1) * segmentMi;
+        const inSegment = chargers.filter(c => c.distanceFromOriginMi >= segStart && c.distanceFromOriginMi < segEnd);
+        if (inSegment.length > 0) {
+          // Pick highest power charger in this segment
+          inSegment.sort((a, b) => b.kw - a.kw);
+          kept.push(inSegment[0]);
+        }
+      }
+      chargers = kept;
+    }
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Charger search failed: ${e.message}` }) };
   }
