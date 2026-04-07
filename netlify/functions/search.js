@@ -176,17 +176,16 @@ exports.handler = async (event) => {
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
   try {
-    // Use 3 wide-radius queries to cover the route in chunks
-    // This avoids rate limiting from many parallel requests
+    // Pick ~6 evenly-spaced sample points for NREL queries (fits in 10s timeout)
     const queryPoints = [];
-    const numQueries = Math.min(3, routePoints.length);
+    const numQueries = Math.min(6, routePoints.length);
     for (let i = 0; i < numQueries; i++) {
-      const idx = Math.round((i + 0.5) * routePoints.length / numQueries);
-      queryPoints.push(routePoints[Math.min(idx, routePoints.length - 1)]);
+      const idx = Math.round(i * (routePoints.length - 1) / (numQueries - 1));
+      queryPoints.push(routePoints[idx]);
     }
 
     const results = await Promise.all(queryPoints.map(pt =>
-      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=100&limit=50`)
+      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=20&limit=5`)
         .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
     ));
     const seen = new Set();
