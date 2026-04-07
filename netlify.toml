@@ -4,6 +4,10 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["node-fetch"]
+
+[functions."search"]
+  timeout = 60
 
 [[redirects]]
   from = "/*"
