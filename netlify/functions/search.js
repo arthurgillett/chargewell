@@ -69,7 +69,7 @@ exports.handler = async (event) => {
     routePolyline = route.overview_polyline?.points || "";
     totalDistanceMeters = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
     totalDurationSeconds = route.legs.reduce((sum, leg) => sum + leg.duration.value, 0);
-    routePoints = sampleRoutePoints(route, 30000);
+    routePoints = sampleRoutePoints(route, 20000);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
   }
@@ -160,51 +160,49 @@ exports.handler = async (event) => {
   // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
   let chargers = [];
   try {
+    // Query each sample point for nearby chargers
     const chargerPromises = routePoints.map(pt =>
       fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=20&limit=6`)
         .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
     );
     const results = await Promise.all(chargerPromises);
     const seen = new Set();
-    const originLat = routeLegs[0].start_location.lat;
-    const originLng = routeLegs[0].start_location.lng;
 
-    // Build cumulative drive-time lookup from route steps
-    const driveTimes = buildDriveTimeLookup(routeLegs);
+    // Process per-sample-point so we can use the point's known route distance/time
+    results.forEach((stations, ptIdx) => {
+      const pt = routePoints[ptIdx];
+      const ptRouteMi = Math.round(pt.routeDistMeters / 1609.344);
+      const ptRouteMin = Math.round(pt.routeTimeSec / 60);
 
-    results.flat().forEach(s => {
-      const id = s.id;
-      if (!id || seen.has(id)) return;
-      seen.add(id);
-      if (!s.latitude || !s.longitude) return;
+      stations.forEach(s => {
+        const id = s.id;
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        if (!s.latitude || !s.longitude) return;
 
-      const distFromOrigin = haversine(originLat, originLng, s.latitude, s.longitude);
-      const distMi = distFromOrigin / 1609.344;
-      const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
+        const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
 
-      // Estimate drive time to this charger based on proportion of route
-      const driveFraction = distMi / totalDistanceMi;
-      const driveMinutesToStop = Math.round(driveFraction * totalDriveMinutes);
-
-      chargers.push({
-        id, name: s.station_name || `Charger ${id}`,
-        address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
-        lat: s.latitude, lng: s.longitude,
-        network: s.ev_network || "Unknown network",
-        kw: Math.min(maxKw, 350),
-        distanceFromOriginMi: Math.round(distMi),
-        driveMinutesFromOrigin: driveMinutesToStop
+        // Use the sample point's route distance as the charger's approximate route distance
+        // This is much more accurate than haversine from origin for curvy routes
+        chargers.push({
+          id, name: s.station_name || `Charger ${id}`,
+          address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
+          lat: s.latitude, lng: s.longitude,
+          network: s.ev_network || "Unknown network",
+          kw: Math.min(maxKw, 350),
+          distanceFromOriginMi: ptRouteMi,
+          driveMinutesFromOrigin: ptRouteMin
+        });
       });
     });
 
     chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
 
-    // Filter out very early stops — don't suggest stopping in the first 20% of the trip
-    // or first 45 minutes, whichever is shorter
+    // Filter out very early stops
     const minDriveMinutes = Math.min(45, totalDriveMinutes * 0.2);
     chargers = chargers.filter(c => c.driveMinutesFromOrigin >= minDriveMinutes);
 
-    chargers = chargers.slice(0, 8);
+    chargers = chargers.slice(0, 10);
   } catch (e) {
     return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Charger search failed: ${e.message}` }) };
   }
@@ -331,19 +329,6 @@ function calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, bat
   };
 }
 
-// ── Drive time lookup ───────────────────────────────────────────────────
-function buildDriveTimeLookup(legs) {
-  const points = [];
-  let accDist = 0, accTime = 0;
-  for (const leg of legs) {
-    for (const step of leg.steps) {
-      accDist += step.distance.value;
-      accTime += step.duration.value;
-      points.push({ distMeters: accDist, timeSeconds: accTime });
-    }
-  }
-  return points;
-}
 
 // ── Thin coverage detection ─────────────────────────────────────────────
 function detectThinCoverage(chargers, totalMi) {
@@ -567,11 +552,20 @@ async function resolveLocation(input) {
 function sampleRoutePoints(route, intervalMeters) {
   const points = [];
   let accumulated = 0;
+  let totalDist = 0;
+  let totalTime = 0;
   for (const leg of route.legs) {
     for (const step of leg.steps) {
+      totalDist += step.distance.value;
+      totalTime += step.duration.value;
       accumulated += step.distance.value;
       if (accumulated >= intervalMeters) {
-        points.push({ lat: step.end_location.lat, lng: step.end_location.lng });
+        points.push({
+          lat: step.end_location.lat,
+          lng: step.end_location.lng,
+          routeDistMeters: totalDist,
+          routeTimeSec: totalTime
+        });
         accumulated = 0;
       }
     }
