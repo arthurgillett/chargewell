@@ -359,16 +359,21 @@ async function generateStrategies(chargers, origin, destination, totalMi, rangeM
   ).map(c => c.id);
 
   const prompt = `Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min drive)
-Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi range). Max ${rangeMi} mi first leg, ${Math.round(rangeMi * 0.85)} mi between charges.
+Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi range). Max ${rangeMi} mi first leg, ${Math.round(rangeMi * 0.85)} mi after charging.
 ${singleStopIds.length > 0 ? 'Single-stop feasible IDs: ' + singleStopIds.join(', ') : 'Needs 2+ stops.'}
 
 Chargers:
 ${chargerSummary}
 
-Pick 2-3 DIFFERENT route options using different chargers. Each must be feasible (legs under range limit). Compare stop experiences, not just networks.
+Propose 2-3 route options that feel GENUINELY DIFFERENT to drive. Vary the trip shape, not just the charger brand:
+- One option with fewer stops but longer charges (skip early chargers, charge more at one good stop later)
+- One option with more stops but shorter charges (break up the drive, quick top-ups)
+- ${singleStopIds.length > 0 ? 'If feasible: one option with a single stop where you charge longer and push through' : 'One option that prioritizes the best stop experience'}
+
+Each must be feasible (every leg under the range limit above).
 
 Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
-[{"name":"The Mall Stop","tagline":"Shop while you charge","emoji":"🛍️","recommended":true,"stopIds":[121737]}]`;
+[{"name":"The Long Lunch","tagline":"One stop in Providence, charge while you eat","emoji":"🍽️","recommended":true,"stopIds":[238588]}]`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
