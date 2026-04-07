@@ -166,23 +166,7 @@
     .sug-name { font-size: 15px; font-weight: 500; color: #2C2C2A; }
     .sug-sub  { font-size: 12px; color: #888780; margin-top: 1px; }
 
-    /* ── Vehicle pills ─────────────────────────────────────── */
-    .pill-scroll {
-      display: flex; gap: 8px; overflow-x: auto;
-      padding: 4px 0 12px; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .pill-scroll::-webkit-scrollbar { display: none; }
-    .pill {
-      padding: 10px 16px; border-radius: 20px;
-      border: 1.5px solid #e0ded8; background: #fff;
-      font-size: 14px; font-weight: 500; color: #5F5E5A;
-      white-space: nowrap; cursor: pointer;
-      transition: all .2s; -webkit-tap-highlight-color: transparent;
-      flex-shrink: 0;
-    }
-    .pill:active { transform: scale(.95); }
-    .pill.selected { border-color: #1D9E75; background: #E8F7F1; color: #0F6E56; }
+
 
     /* ── Party grid ────────────────────────────────────────── */
     .party-grid {
@@ -441,9 +425,20 @@
     <!-- Step 3: Trip details -->
     <div class="step-body" id="step-3" style="display:none">
       <div class="step-label">YOUR VEHICLE</div>
-      <div class="pill-scroll" id="vehicle-pills"></div>
+      <select id="inp-vehicle" class="search-input" style="margin-bottom:12px" onchange="formData.vehicle=this.value">
+      </select>
 
-      <div class="step-label" style="margin-top:8px">WHO'S COMING ALONG?</div>
+      <div class="step-label">CHARGE PORT</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="party-btn selected" id="btn-nacs" onclick="pickConnector('nacs')" style="flex:1;justify-content:center">
+          <span>NACS</span>
+        </button>
+        <button class="party-btn" id="btn-ccs" onclick="pickConnector('ccs')" style="flex:1;justify-content:center">
+          <span>CCS</span>
+        </button>
+      </div>
+
+      <div class="step-label">WHO'S COMING ALONG?</div>
       <p style="font-size:12px;color:#b0afa8;margin:-6px 0 8px">Affects how stops are scored for kids, dogs, outdoor space</p>
       <div class="party-grid">
         <button class="party-btn selected" onclick="pickParty(this,'Kids + dog')">
@@ -568,7 +563,7 @@
    STATE
    ══════════════════════════════════════════════════════════════ */
 var currentStep   = 1;
-var formData      = { origin: '', destination: '', vehicle: 'tesla_model_y_lr', party: 'Kids + dog' };
+var formData      = { origin: '', destination: '', vehicle: 'tesla_model_y_lr', connector: 'nacs', party: 'Kids + dog' };
 var searchResult  = null;
 var decodedPolyline = null;
 var currentStops  = [];
@@ -855,10 +850,10 @@ function useMyLocation() {
   );
 }
 
-function pickVehicle(id, el) {
-  formData.vehicle = id;
-  document.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('selected'); });
-  el.classList.add('selected');
+function pickConnector(type) {
+  formData.connector = type;
+  document.getElementById('btn-nacs').classList.toggle('selected', type === 'nacs');
+  document.getElementById('btn-ccs').classList.toggle('selected', type === 'ccs');
 }
 
 function pickParty(el, val) {
@@ -1022,6 +1017,7 @@ function renderRoutes() {
         (s.recommended ? '<span class="recommended-tag">RECOMMENDED</span>' : '') +
       '</div>' +
       '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:4px">' + s.tagline + '</p>' +
+      (formData.connector === 'ccs' ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;margin-bottom:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> CCS adapter needed</div>' : '') +
       '<p style="font-size:13px;color:#888780;margin-bottom:2px">' + stopsLine + '</p>' +
       (stopScores.length ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;font-size:13px">' + stopScores.join('') + '</div>' : '') +
       (total ? '<div class="timing-row">' +
@@ -1065,6 +1061,11 @@ function showStopDetail(stop, stopIdx) {
   // Last reliable badge
   if (c.lastReliable) {
     html += '<div class="last-reliable-badge">Last reliable fast charger</div>';
+  }
+
+  // CCS badge
+  if (formData.connector === 'ccs') {
+    html += '<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;margin-bottom:10px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> CCS adapter needed for this charger</div>';
   }
 
   // Score block
@@ -1183,6 +1184,7 @@ function buildShareURL() {
   if (formData.origin)      params.set('from', formData.origin);
   if (formData.destination) params.set('to', formData.destination);
   if (formData.vehicle)     params.set('v', formData.vehicle);
+  if (formData.connector)   params.set('c', formData.connector);
   if (formData.party)       params.set('w', formData.party);
   return window.location.origin + window.location.pathname + '?' + params.toString();
 }
@@ -1253,13 +1255,12 @@ function initAutocomplete() {
    STARTUP
    ══════════════════════════════════════════════════════════════ */
 
-// Build vehicle pills
+// Build vehicle dropdown
 (function () {
   var html = VEHICLES.map(function (v) {
-    return '<div class="pill' + (v.id === formData.vehicle ? ' selected' : '') +
-      '" onclick="pickVehicle(\'' + v.id + '\',this)">' + v.label + '</div>';
+    return '<option value="' + v.id + '"' + (v.id === formData.vehicle ? ' selected' : '') + '>' + v.label + '</option>';
   }).join('');
-  document.getElementById('vehicle-pills').innerHTML = html;
+  document.getElementById('inp-vehicle').innerHTML = html;
 })();
 
 // Check URL params for shared links — auto-run search if present
@@ -1268,6 +1269,7 @@ function checkURLParams() {
   var from = params.get('from');
   var to   = params.get('to');
   var v    = params.get('v');
+  var c    = params.get('c');
   var w    = params.get('w');
 
   if (from && to) {
@@ -1278,9 +1280,10 @@ function checkURLParams() {
 
     if (v) {
       formData.vehicle = v;
-      document.querySelectorAll('.pill').forEach(function (p) {
-        p.classList.toggle('selected', p.textContent === VEHICLES.find(function (veh) { return veh.id === v; })?.label);
-      });
+      document.getElementById('inp-vehicle').value = v;
+    }
+    if (c) {
+      pickConnector(c);
     }
     if (w) {
       formData.party = w;
