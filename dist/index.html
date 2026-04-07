@@ -472,8 +472,14 @@
 
   <!-- ═══════════════ SCREEN: ROUTES ═══════════════ -->
   <div class="screen" id="screen-routes">
-    <div class="header">
-      <div class="brand" id="route-header-label">YOUR TRIP</div>
+    <div class="detail-header">
+      <div class="detail-back" onclick="resetToInput()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C2C2A" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780">YOUR TRIP</div>
+    </div>
+    <div class="header" style="padding-top:0">
+      <div class="brand" id="route-header-label" style="display:none">YOUR TRIP</div>
       <div class="title" id="route-title"></div>
       <div class="subtitle" id="route-subtitle"></div>
     </div>
@@ -494,9 +500,6 @@
         </svg>
         <span id="share-btn-label">Share this trip</span>
       </button>
-    </div>
-    <div style="padding:12px 20px">
-      <div class="back-link" onclick="resetToInput()">Plan a different drive</div>
     </div>
   </div>
 
