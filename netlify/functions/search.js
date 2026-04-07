@@ -373,14 +373,14 @@ CRITICAL FEASIBILITY RULE: The driver starts at 100% and after each charge gets 
 
 ${singleStopIds.length > 0 ? 'Chargers that work as single stops (feasible alone): ids ' + singleStopIds.join(', ') : 'No single charger can cover this trip alone — every option needs 2+ stops.'}
 
-Propose 2-3 route options comparing different stopping strategies. The goal is real alternatives the user can compare side by side.
+Propose 2-3 route options. Each option uses a DIFFERENT charger or set of chargers. The user wants to compare alternatives — these can be at similar distances but different chargers (e.g. a Tesla Supercharger at a mall vs a rest stop charger — very different experiences even in the same area).
 
 Rules:
-- Every option MUST pass the feasibility check above. Do not propose infeasible routes.
-- For trips where a single stop works, compare different single-stop options
-- For longer trips, use 2-3 stops per option as needed
-- Use creative, memorable names
-- Each needs a short tagline with the tradeoff
+- Every option MUST pass the feasibility check above
+- Two options CAN use chargers at the same distance — what matters is the STOPS are different
+- Recommend the option with the best stop experience
+- Use creative names that hint at the stop vibe
+- Each needs a short tagline about the tradeoff
 - Mark exactly one as recommended:true
 
 Reply ONLY with a JSON array:
