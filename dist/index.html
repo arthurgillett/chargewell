@@ -1,424 +1,749 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Charge Well. Eat Well. Be Well.</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;-webkit-font-smoothing:antialiased;color:#2C2C2A;overflow-x:hidden}
-input,select,button{font-family:inherit}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Charge Well. Eat Well. Be Well.</title>
+  <style>
+    /* ── Reset ──────────────────────────────────────────────── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff;
+      -webkit-font-smoothing: antialiased;
+      color: #2C2C2A;
+      overflow-x: hidden;
+    }
+    input, select, button { font-family: inherit; }
 
-/* ── App shell ─────────────────────────────────────────── */
-.app{max-width:480px;margin:0 auto;min-height:100dvh;position:relative;overflow:hidden}
-.screen{position:absolute;top:0;left:0;right:0;bottom:0;background:#fff;overflow-y:auto;padding-bottom:100px;
-  opacity:0;transform:scale(0.96);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
-.screen.active{opacity:1;transform:scale(1);pointer-events:auto;position:relative}
-.screen.slide-right{opacity:0;transform:translateX(100%)}
-.screen.slide-left{opacity:0;transform:translateX(-100%)}
+    /* ── App shell ─────────────────────────────────────────── */
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      position: relative;
+      overflow: hidden;
+    }
+    .screen {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff;
+      overflow-y: auto;
+      padding-bottom: 100px;
+      opacity: 0;
+      transform: scale(0.96);
+      pointer-events: none;
+      transition: opacity .3s ease, transform .3s ease;
+    }
+    .screen.active {
+      opacity: 1;
+      transform: scale(1);
+      pointer-events: auto;
+      position: relative;
+    }
+    .screen.slide-right { opacity: 0; transform: translateX(100%); }
+    .screen.slide-left  { opacity: 0; transform: translateX(-100%); }
 
-/* ── Progress bar ──────────────────────────────────────── */
-.progress-bar{display:flex;gap:4px;padding:0 20px;margin-bottom:8px}
-.progress-seg{flex:1;height:3px;border-radius:2px;background:#EDECE8;transition:background .3s}
-.progress-seg.done{background:#1D9E75}
-.progress-seg.current{background:#5DCAA5}
+    /* ── Progress bar ──────────────────────────────────────── */
+    .progress-bar { display: flex; gap: 4px; padding: 0 20px; margin-bottom: 8px; }
+    .progress-seg {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: #EDECE8; transition: background .3s;
+    }
+    .progress-seg.done    { background: #1D9E75; }
+    .progress-seg.current { background: #5DCAA5; }
 
-/* ── Header ────────────────────────────────────────────── */
-.header{padding:16px 20px 0}
-.brand{font-size:10px;font-weight:600;letter-spacing:.12em;color:#1D9E75;margin-bottom:4px}
-.title{font-size:24px;font-weight:600;color:#2C2C2A;line-height:1.2;margin-bottom:4px}
-.subtitle{font-size:15px;color:#5F5E5A;line-height:1.4}
+    /* ── Header ────────────────────────────────────────────── */
+    .header { padding: 16px 20px 0; }
+    .brand {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: .12em; color: #1D9E75;
+      margin-bottom: 4px;
+    }
+    .title {
+      font-size: 24px; font-weight: 600;
+      color: #2C2C2A; line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .subtitle { font-size: 15px; color: #5F5E5A; line-height: 1.4; }
 
-/* ── How it works strip ────────────────────────────────── */
-.hiw-strip{display:flex;align-items:center;gap:4px;padding:10px 20px;margin:12px 0 4px}
-.hiw-step{display:flex;align-items:center;gap:5px;flex:1}
-.hiw-num{width:18px;height:18px;border-radius:50%;background:#E8F7F1;color:#1D9E75;font-size:10px;font-weight:600;line-height:18px;text-align:center;flex-shrink:0}
-.hiw-text{font-size:11px;color:#888780;line-height:1.2}
-.hiw-arrow{color:#d4d3ce;font-size:10px;flex-shrink:0}
+    /* ── How it works strip ────────────────────────────────── */
+    .hiw-strip {
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 20px; margin: 12px 0 4px;
+    }
+    .hiw-step { display: flex; align-items: center; gap: 5px; flex: 1; }
+    .hiw-num {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #E8F7F1; color: #1D9E75;
+      font-size: 10px; font-weight: 600;
+      line-height: 18px; text-align: center; flex-shrink: 0;
+    }
+    .hiw-text { font-size: 11px; color: #888780; line-height: 1.2; }
+    .hiw-arrow { color: #d4d3ce; font-size: 10px; flex-shrink: 0; }
 
-/* ── Step content ──────────────────────────────────────── */
-.step-body{padding:20px 20px 0}
-.step-label{font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:12px}
+    /* ── Step content ──────────────────────────────────────── */
+    .step-body { padding: 20px 20px 0; }
+    .step-label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .06em; color: #888780;
+      margin-bottom: 12px;
+    }
 
-/* ── Location button ───────────────────────────────────── */
-.loc-btn{display:flex;align-items:center;gap:10px;width:100%;padding:14px 16px;border-radius:12px;
-  background:#E8F7F1;border:1.5px solid #C3EDDB;color:#0F6E56;font-size:15px;font-weight:500;
-  cursor:pointer;transition:transform .15s;-webkit-tap-highlight-color:transparent}
-.loc-btn:active{transform:scale(.97)}
-.loc-btn svg{flex-shrink:0}
+    /* ── Location button ───────────────────────────────────── */
+    .loc-btn {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 14px 16px; border-radius: 12px;
+      background: #E8F7F1; border: 1.5px solid #C3EDDB;
+      color: #0F6E56; font-size: 15px; font-weight: 500;
+      cursor: pointer; transition: transform .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .loc-btn:active { transform: scale(.97); }
+    .loc-btn svg { flex-shrink: 0; }
 
-.divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:#c8c6c0;font-size:12px}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:#EDECE8}
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      margin: 16px 0; color: #c8c6c0; font-size: 12px;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #EDECE8;
+    }
 
-/* ── Search input ──────────────────────────────────────── */
-.search-input{width:100%;font-size:16px;padding:14px 16px;border-radius:12px;border:1px solid #e0ded8;
-  background:#FAFDF9;outline:none;transition:border-color .2s}
-.search-input:focus{border-color:#5DCAA5}
-.search-input::placeholder{color:#b0afa8}
+    /* ── Search input ──────────────────────────────────────── */
+    .search-input {
+      width: 100%; font-size: 16px; padding: 14px 16px;
+      border-radius: 12px; border: 1px solid #e0ded8;
+      background: #FAFDF9; outline: none;
+      transition: border-color .2s;
+    }
+    .search-input:focus { border-color: #5DCAA5; }
+    .search-input::placeholder { color: #b0afa8; }
 
-/* ── Locked field (step 2) ─────────────────────────────── */
-.locked-field{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;background:#F5F5F3;color:#888780;font-size:15px}
-.locked-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    /* ── Locked field (step 2) ─────────────────────────────── */
+    .locked-field {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: 12px;
+      background: #F5F5F3; color: #888780; font-size: 15px;
+    }
+    .locked-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
 
-/* ── Route connector ───────────────────────────────────── */
-.route-connector{display:flex;gap:12px;margin-bottom:16px}
-.connector-line{display:flex;flex-direction:column;align-items:center;padding-top:16px;gap:0}
-.connector-line .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.connector-line .line{width:2px;flex:1;min-height:20px;background:#e0ded8}
-.connector-fields{flex:1;display:flex;flex-direction:column;gap:10px}
+    /* ── Route connector ───────────────────────────────────── */
+    .route-connector { display: flex; gap: 12px; margin-bottom: 16px; }
+    .connector-line {
+      display: flex; flex-direction: column;
+      align-items: center; padding-top: 16px; gap: 0;
+    }
+    .connector-line .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .connector-line .line {
+      width: 2px; flex: 1; min-height: 20px; background: #e0ded8;
+    }
+    .connector-fields {
+      flex: 1; display: flex; flex-direction: column; gap: 10px;
+    }
 
-/* ── Suggestion tiles ──────────────────────────────────── */
-.suggestions{margin-top:20px}
-.sug-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #F5F5F3;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;transition:opacity .15s}
-.sug-item:active{opacity:.6}
-.sug-icon{width:36px;height:36px;border-radius:8px;background:#F5F5F3;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sug-icon svg{width:18px;height:18px;stroke:#888780;fill:none;stroke-width:1.5}
-.sug-name{font-size:15px;font-weight:500;color:#2C2C2A}
-.sug-sub{font-size:12px;color:#888780;margin-top:1px}
+    /* ── Suggestion tiles ──────────────────────────────────── */
+    .suggestions { margin-top: 20px; }
+    .sug-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid #F5F5F3;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: opacity .15s;
+    }
+    .sug-item:active { opacity: .6; }
+    .sug-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: #F5F5F3; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .sug-icon svg {
+      width: 18px; height: 18px; stroke: #888780;
+      fill: none; stroke-width: 1.5;
+    }
+    .sug-name { font-size: 15px; font-weight: 500; color: #2C2C2A; }
+    .sug-sub  { font-size: 12px; color: #888780; margin-top: 1px; }
 
-/* ── Vehicle pills ─────────────────────────────────────── */
-.pill-scroll{display:flex;gap:8px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-.pill-scroll::-webkit-scrollbar{display:none}
-.pill{padding:10px 16px;border-radius:20px;border:1.5px solid #e0ded8;background:#fff;font-size:14px;
-  font-weight:500;color:#5F5E5A;white-space:nowrap;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
-.pill:active{transform:scale(.95)}
-.pill.selected{border-color:#1D9E75;background:#E8F7F1;color:#0F6E56}
+    /* ── Vehicle pills ─────────────────────────────────────── */
+    .pill-scroll {
+      display: flex; gap: 8px; overflow-x: auto;
+      padding: 4px 0 12px; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .pill-scroll::-webkit-scrollbar { display: none; }
+    .pill {
+      padding: 10px 16px; border-radius: 20px;
+      border: 1.5px solid #e0ded8; background: #fff;
+      font-size: 14px; font-weight: 500; color: #5F5E5A;
+      white-space: nowrap; cursor: pointer;
+      transition: all .2s; -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .pill:active { transform: scale(.95); }
+    .pill.selected { border-color: #1D9E75; background: #E8F7F1; color: #0F6E56; }
 
-/* ── Party grid ────────────────────────────────────────── */
-.party-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.party-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:12px;border:1.5px solid #e0ded8;
-  background:#fff;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
-.party-btn:active{transform:scale(.96)}
-.party-btn.selected{border-color:#1D9E75;background:#E8F7F1}
-.party-btn svg{width:20px;height:20px;stroke:#5F5E5A;fill:none;stroke-width:1.5;flex-shrink:0}
-.party-btn.selected svg{stroke:#0F6E56}
-.party-btn span{font-size:14px;font-weight:500;color:#5F5E5A}
-.party-btn.selected span{color:#0F6E56}
+    /* ── Party grid ────────────────────────────────────────── */
+    .party-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-top: 12px;
+    }
+    .party-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; border-radius: 12px;
+      border: 1.5px solid #e0ded8; background: #fff;
+      cursor: pointer; transition: all .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .party-btn:active { transform: scale(.96); }
+    .party-btn.selected { border-color: #1D9E75; background: #E8F7F1; }
+    .party-btn svg {
+      width: 20px; height: 20px; stroke: #5F5E5A;
+      fill: none; stroke-width: 1.5; flex-shrink: 0;
+    }
+    .party-btn.selected svg  { stroke: #0F6E56; }
+    .party-btn span          { font-size: 14px; font-weight: 500; color: #5F5E5A; }
+    .party-btn.selected span { color: #0F6E56; }
 
-/* ── Sticky CTA ────────────────────────────────────────── */
-.cta-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
-  padding:12px 20px 28px;background:linear-gradient(transparent,#fff 24px);z-index:100}
-.cta-btn{width:100%;height:56px;border-radius:28px;border:none;background:#1D9E75;color:#fff;
-  font-size:17px;font-weight:600;cursor:pointer;transition:transform .15s,opacity .15s;-webkit-tap-highlight-color:transparent}
-.cta-btn:active{transform:scale(.96)}
-.cta-btn:disabled{opacity:.45;cursor:not-allowed}
-.back-link{display:block;text-align:center;padding:8px;font-size:13px;color:#888780;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    /* ── Sticky CTA ────────────────────────────────────────── */
+    .cta-bar {
+      position: fixed; bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      padding: 12px 20px 28px;
+      background: linear-gradient(transparent, #fff 24px);
+      z-index: 100;
+    }
+    .cta-btn {
+      width: 100%; height: 56px; border-radius: 28px;
+      border: none; background: #1D9E75; color: #fff;
+      font-size: 17px; font-weight: 600; cursor: pointer;
+      transition: transform .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cta-btn:active   { transform: scale(.96); }
+    .cta-btn:disabled { opacity: .45; cursor: not-allowed; }
+    .back-link {
+      display: block; text-align: center; padding: 8px;
+      font-size: 13px; color: #888780; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-/* ── Loading ───────────────────────────────────────────── */
-.loading-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
-.spinner{width:28px;height:28px;border:3px solid #EDECE8;border-top-color:#1D9E75;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:16px}
-@keyframes spin{to{transform:rotate(360deg)}}
+    /* ── Loading ───────────────────────────────────────────── */
+    .loading-screen {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 60px 20px; text-align: center;
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid #EDECE8; border-top-color: #1D9E75;
+      border-radius: 50%; animation: spin .7s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Route cards ───────────────────────────────────────── */
-.route-card{background:#fff;border:1.5px solid #EDECE8;border-radius:16px;padding:16px 18px;margin-bottom:10px;
-  cursor:pointer;transition:border-color .2s,transform .15s;-webkit-tap-highlight-color:transparent}
-.route-card:active{transform:scale(.98)}
-.route-card.recommended{border-color:#5DCAA5}
-.route-svg{display:block;margin:8px auto}
-.timing-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
-.timing-pill{font-size:11px;padding:4px 10px;border-radius:10px;white-space:nowrap;font-weight:500}
-.timing-drive{background:#F5F5F3;color:#5F5E5A}
-.timing-charge{background:#E8F7F1;color:#085041}
-.timing-total{background:#2C2C2A;color:#fff}
-.recommended-tag{font-size:10px;font-weight:600;letter-spacing:.06em;padding:3px 8px;border-radius:8px;background:#E8F7F1;color:#085041}
-.leg-breakdown{margin-top:10px;padding-top:8px;border-top:1px solid #F5F5F3}
-.leg-item{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px;color:#5F5E5A}
-.leg-icon{width:16px;text-align:center;flex-shrink:0;font-size:12px}
-.leg-time{color:#2C2C2A;font-weight:500;flex-shrink:0}
+    /* ── Route cards ───────────────────────────────────────── */
+    .route-card {
+      background: #fff; border: 1.5px solid #EDECE8;
+      border-radius: 16px; padding: 16px 18px;
+      margin-bottom: 10px; cursor: pointer;
+      transition: border-color .2s, transform .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .route-card:active    { transform: scale(.98); }
+    .route-card.recommended { border-color: #5DCAA5; }
+    .route-svg { display: block; margin: 8px auto; }
+    .timing-row {
+      display: flex; align-items: center; gap: 6px;
+      flex-wrap: wrap; margin-top: 6px;
+    }
+    .timing-pill {
+      font-size: 11px; padding: 4px 10px; border-radius: 10px;
+      white-space: nowrap; font-weight: 500;
+    }
+    .timing-drive  { background: #F5F5F3; color: #5F5E5A; }
+    .timing-charge { background: #E8F7F1; color: #085041; }
+    .timing-total  { background: #2C2C2A; color: #fff; }
+    .recommended-tag {
+      font-size: 10px; font-weight: 600; letter-spacing: .06em;
+      padding: 3px 8px; border-radius: 8px;
+      background: #E8F7F1; color: #085041;
+    }
+    .leg-breakdown {
+      margin-top: 10px; padding-top: 8px;
+      border-top: 1px solid #F5F5F3;
+    }
+    .leg-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 0; font-size: 13px; color: #5F5E5A;
+    }
+    .leg-icon { width: 16px; text-align: center; flex-shrink: 0; font-size: 12px; }
+    .leg-time { color: #2C2C2A; font-weight: 500; flex-shrink: 0; }
 
-/* ── Stop detail screen ────────────────────────────────── */
-.detail-header{padding:16px 20px;display:flex;align-items:center;gap:12px}
-.detail-back{width:36px;height:36px;border-radius:50%;background:#F5F5F3;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
-.detail-back:active{background:#EDECE8}
-.detail-body{padding:0 20px 20px}
-.score-big{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-.score-num{font-size:36px;font-weight:600;line-height:1}
-.score-label{font-size:13px;font-weight:500}
-.detail-section{padding:14px 0;border-top:1px solid #F5F5F3}
-.detail-section-label{font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:6px}
-.detail-section-text{font-size:15px;color:#2C2C2A;line-height:1.5}
-.food-badge{display:inline-block;font-size:12px;padding:3px 9px;border-radius:10px;margin-right:4px}
-.food-local{background:#E8F7F1;color:#085041}
-.food-mid{background:#FEF3C7;color:#633806}
-.food-chain{background:#F5F5F3;color:#5F5E5A}
-.last-reliable-badge{display:inline-block;font-size:11px;font-weight:500;padding:4px 10px;border-radius:10px;background:#FEF3C7;color:#92400E;margin-bottom:10px}
-.last-reliable-warning{font-size:13px;color:#92400E;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:10px;line-height:1.4}
-.timing-detail{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
-.timing-detail-item{text-align:center;padding:10px;background:#FAFDF9;border-radius:10px}
-.timing-detail-val{font-size:18px;font-weight:600;color:#2C2C2A}
-.timing-detail-label{font-size:11px;color:#888780;margin-top:2px}
-.maps-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;
-  border-radius:14px;border:1.5px solid #5DCAA5;background:#fff;color:#0F6E56;font-size:15px;
-  font-weight:500;cursor:pointer;transition:transform .15s;margin-top:16px;-webkit-tap-highlight-color:transparent}
-.maps-btn:active{transform:scale(.97)}
+    /* ── Stop detail screen ────────────────────────────────── */
+    .detail-header {
+      padding: 16px 20px; display: flex;
+      align-items: center; gap: 12px;
+    }
+    .detail-back {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #F5F5F3; display: flex;
+      align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .detail-back:active { background: #EDECE8; }
+    .detail-body { padding: 0 20px 20px; }
+    .score-big { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .score-num { font-size: 36px; font-weight: 600; line-height: 1; }
+    .score-label { font-size: 13px; font-weight: 500; }
+    .detail-section { padding: 14px 0; border-top: 1px solid #F5F5F3; }
+    .detail-section-label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .06em; color: #888780;
+      margin-bottom: 6px;
+    }
+    .detail-section-text { font-size: 15px; color: #2C2C2A; line-height: 1.5; }
+    .food-badge {
+      display: inline-block; font-size: 12px;
+      padding: 3px 9px; border-radius: 10px; margin-right: 4px;
+    }
+    .food-local { background: #E8F7F1; color: #085041; }
+    .food-mid   { background: #FEF3C7; color: #633806; }
+    .food-chain  { background: #F5F5F3; color: #5F5E5A; }
+    .last-reliable-badge {
+      display: inline-block; font-size: 11px; font-weight: 500;
+      padding: 4px 10px; border-radius: 10px;
+      background: #FEF3C7; color: #92400E; margin-bottom: 10px;
+    }
+    .last-reliable-warning {
+      font-size: 13px; color: #92400E; background: #FFFBEB;
+      border-radius: 10px; padding: 10px 14px;
+      margin-top: 10px; line-height: 1.4;
+    }
+    .timing-detail {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px; margin: 12px 0;
+    }
+    .timing-detail-item {
+      text-align: center; padding: 10px;
+      background: #FAFDF9; border-radius: 10px;
+    }
+    .timing-detail-val  { font-size: 18px; font-weight: 600; color: #2C2C2A; }
+    .timing-detail-label { font-size: 11px; color: #888780; margin-top: 2px; }
+    .maps-btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px; width: 100%; padding: 14px; border-radius: 14px;
+      border: 1.5px solid #5DCAA5; background: #fff;
+      color: #0F6E56; font-size: 15px; font-weight: 500;
+      cursor: pointer; transition: transform .15s;
+      margin-top: 16px; -webkit-tap-highlight-color: transparent;
+    }
+    .maps-btn:active { transform: scale(.97); }
 
-/* Google autocomplete override */
-.pac-container{border-radius:12px;border:1px solid #e0ded8;box-shadow:0 8px 24px rgba(0,0,0,.08);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin-top:6px}
-.pac-item{padding:10px 14px;font-size:14px;cursor:pointer}
-.pac-item:hover,.pac-item-selected{background:#FAFDF9}
-.pac-matched{color:#1D9E75;font-weight:500}
-</style>
+    /* ── Google autocomplete override ──────────────────────── */
+    .pac-container {
+      border-radius: 12px; border: 1px solid #e0ded8;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin-top: 6px;
+    }
+    .pac-item { padding: 10px 14px; font-size: 14px; cursor: pointer; }
+    .pac-item:hover, .pac-item-selected { background: #FAFDF9; }
+    .pac-matched { color: #1D9E75; font-weight: 500; }
+  </style>
 </head>
 <body>
+
 <div class="app" id="app">
 
-<!-- ═══════════════════ SCREEN: INPUT ═══════════════════ -->
-<div class="screen active" id="screen-input">
-  <div class="header">
-    <div class="brand">CHARGE WELL. EAT WELL. BE WELL.</div>
-    <div class="title">Plan a drive you'll actually enjoy</div>
-    <div class="subtitle">Great routes aren't just about getting there — they're about the stops along the way. We build trips around chargers with real food, green space, and things to do while you charge.</div>
-  </div>
-
-  <div class="hiw-strip" id="hiw-strip">
-    <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-text">Plan your drive</div></div>
-    <div class="hiw-arrow">&rarr;</div>
-    <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-text">We build routes</div></div>
-    <div class="hiw-arrow">&rarr;</div>
-    <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-text">Pick your favorite</div></div>
-  </div>
-
-  <div class="progress-bar">
-    <div class="progress-seg" id="prog-1"></div>
-    <div class="progress-seg" id="prog-2"></div>
-    <div class="progress-seg" id="prog-3"></div>
-  </div>
-
-  <!-- Step 1: Origin -->
-  <div class="step-body" id="step-1">
-    <div class="step-label">WHERE ARE YOU STARTING?</div>
-    <button class="loc-btn" onclick="useMyLocation()">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m10-10h-4M6 12H2"/><circle cx="12" cy="12" r="8"/></svg>
-      Use my current location
-    </button>
-    <div class="divider">or type below</div>
-    <input class="search-input" id="inp-from" type="text" placeholder="Search for a city or address" autocomplete="off" />
-    <div class="suggestions" id="sug-from">
-      <div class="sug-item" onclick="pickSuggestion('from','New York, NY')">
-        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
-        <div><div class="sug-name">New York, NY</div><div class="sug-sub">The Big Apple</div></div>
-      </div>
-      <div class="sug-item" onclick="pickSuggestion('from','Boston, MA')">
-        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
-        <div><div class="sug-name">Boston, MA</div><div class="sug-sub">New England hub</div></div>
-      </div>
-      <div class="sug-item" onclick="pickSuggestion('from','Washington, DC')">
-        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
-        <div><div class="sug-name">Washington, DC</div><div class="sug-sub">Capital region</div></div>
-      </div>
+  <!-- ═══════════════ SCREEN: INPUT ═══════════════ -->
+  <div class="screen active" id="screen-input">
+    <div class="header">
+      <div class="brand">CHARGE WELL. EAT WELL. BE WELL.</div>
+      <div class="title">Plan a drive you'll actually enjoy</div>
+      <div class="subtitle">Great routes aren't just about getting there — they're about the stops along the way. We build trips around chargers with real food, green space, and things to do while you charge.</div>
     </div>
-  </div>
 
-  <!-- Step 2: Destination -->
-  <div class="step-body" id="step-2" style="display:none">
-    <div class="step-label">WHERE ARE YOU HEADED?</div>
-    <div class="route-connector">
-      <div class="connector-line">
-        <div class="dot" style="background:#888780"></div>
-        <div class="line"></div>
-        <div class="dot" style="background:#1D9E75"></div>
-      </div>
-      <div class="connector-fields">
-        <div class="locked-field"><span id="origin-display">New York, NY</span></div>
-        <input class="search-input" id="inp-to" type="text" placeholder="Search for your destination" autocomplete="off" />
-      </div>
+    <div class="hiw-strip" id="hiw-strip">
+      <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-text">Plan your drive</div></div>
+      <div class="hiw-arrow">&rarr;</div>
+      <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-text">We build routes</div></div>
+      <div class="hiw-arrow">&rarr;</div>
+      <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-text">Pick your favorite</div></div>
     </div>
-    <div class="suggestions" id="sug-to">
-      <div class="sug-item" onclick="pickSuggestion('to','Provincetown, MA')">
-        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
-        <div><div class="sug-name">Provincetown, MA</div><div class="sug-sub">Tip of Cape Cod</div></div>
-      </div>
-      <div class="sug-item" onclick="pickSuggestion('to','Burlington, VT')">
-        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
-        <div><div class="sug-name">Burlington, VT</div><div class="sug-sub">Lake Champlain</div></div>
-      </div>
-      <div class="sug-item" onclick="pickSuggestion('to','Nags Head, NC')">
-        <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
-        <div><div class="sug-name">Nags Head, NC</div><div class="sug-sub">Outer Banks</div></div>
-      </div>
+
+    <div class="progress-bar">
+      <div class="progress-seg" id="prog-1"></div>
+      <div class="progress-seg" id="prog-2"></div>
+      <div class="progress-seg" id="prog-3"></div>
     </div>
-  </div>
 
-  <!-- Step 3: Trip details -->
-  <div class="step-body" id="step-3" style="display:none">
-    <div class="step-label">YOUR VEHICLE</div>
-    <div class="pill-scroll" id="vehicle-pills"></div>
-
-    <div class="step-label" style="margin-top:8px">WHO'S COMING ALONG?</div>
-    <p style="font-size:12px;color:#b0afa8;margin:-6px 0 8px">Affects how stops are scored for kids, dogs, outdoor space</p>
-    <div class="party-grid">
-      <button class="party-btn selected" onclick="pickParty(this,'Kids + dog')">
-        <svg viewBox="0 0 24 24"><path d="M16 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6 20v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/><circle cx="19" cy="14" r="2"/><path d="M19 16v3"/></svg>
-        <span>Kids + dog</span>
+    <!-- Step 1: Origin -->
+    <div class="step-body" id="step-1">
+      <div class="step-label">WHERE ARE YOU STARTING?</div>
+      <button class="loc-btn" onclick="useMyLocation()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m10-10h-4M6 12H2"/><circle cx="12" cy="12" r="8"/>
+        </svg>
+        Use my current location
       </button>
-      <button class="party-btn" onclick="pickParty(this,'Kids only')">
-        <svg viewBox="0 0 24 24"><path d="M16 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6 20v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/></svg>
-        <span>Kids only</span>
-      </button>
-      <button class="party-btn" onclick="pickParty(this,'Dog only')">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 13v4M8 21h8M7 6l-2-3M17 6l2-3"/></svg>
-        <span>Dog only</span>
-      </button>
-      <button class="party-btn" onclick="pickParty(this,'Just us')">
-        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>Just us</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════ SCREEN: LOADING ═══════════════════ -->
-<div class="screen" id="screen-loading">
-  <div class="loading-screen">
-    <div class="spinner"></div>
-    <p style="font-size:16px;font-weight:500;color:#2C2C2A;margin-bottom:4px">Building your route</p>
-    <p style="font-size:14px;color:#888780;line-height:1.4">Finding the best places to stop and putting together routes you'll actually want to drive. About 15 seconds.</p>
-  </div>
-</div>
-
-<!-- ═══════════════════ SCREEN: ROUTES ═══════════════════ -->
-<div class="screen" id="screen-routes">
-  <div class="header">
-    <div class="brand" id="route-header-label">YOUR TRIP</div>
-    <div class="title" id="route-title"></div>
-    <div class="subtitle" id="route-subtitle"></div>
-  </div>
-  <div style="padding:16px 20px 0" id="routes-list"></div>
-  <div style="padding:0 20px">
-    <button class="maps-btn" onclick="openInMaps()" id="routes-maps-btn" style="display:none">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Open full route in Google Maps
-    </button>
-  </div>
-  <div style="padding:0 20px">
-    <button class="maps-btn" style="background:#FAFDF9;border-color:#EDECE8;color:#5F5E5A" onclick="shareTrip()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
-      <span id="share-btn-label">Share this trip</span>
-    </button>
-  </div>
-  <div style="padding:12px 20px">
-    <div class="back-link" onclick="resetToInput()">Plan a different drive</div>
-  </div>
-</div>
-
-<!-- ═══════════════════ SCREEN: STOP DETAIL ═══════════════ -->
-<div class="screen" id="screen-detail">
-  <div class="detail-header">
-    <div class="detail-back" onclick="backToRoutes()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C2C2A" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-    </div>
-    <div>
-      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780">STOP DETAIL</div>
-    </div>
-  </div>
-  <div class="detail-body" id="detail-body"></div>
-</div>
-
-<!-- ═══════════════════ SCREEN: NO STOP ════════════════════ -->
-<div class="screen" id="screen-nostop">
-  <div style="padding:60px 24px;text-align:center">
-    <div style="font-size:48px;margin-bottom:12px">&#9889;</div>
-    <div style="font-size:20px;font-weight:600;color:#2C2C2A;margin-bottom:8px">Straight through — no stop needed!</div>
-    <div style="font-size:15px;color:#5F5E5A;line-height:1.5" id="nostop-msg"></div>
-    <div id="nostop-svg" style="margin:16px 0"></div>
-    <div id="roundtrip-section" style="display:none">
-      <div style="height:1px;background:#EDECE8;margin:20px 0"></div>
-      <button class="loc-btn" style="justify-content:center;margin-bottom:12px" onclick="showRoundTrip()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-        Planning a return trip?
-      </button>
-      <div id="roundtrip-detail" style="display:none;text-align:left">
-        <div style="background:#FAFDF9;border:1.5px solid #EDECE8;border-radius:14px;padding:16px;margin-bottom:12px">
-          <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:6px">QUICK STOP ON THE WAY BACK</div>
-          <div style="font-size:15px;color:#2C2C2A;line-height:1.5" id="roundtrip-msg"></div>
-          <div id="roundtrip-charger" style="margin-top:10px"></div>
+      <div class="divider">or type below</div>
+      <input class="search-input" id="inp-from" type="text" placeholder="Search for a city or address" autocomplete="off">
+      <div class="suggestions" id="sug-from">
+        <div class="sug-item" onclick="pickSuggestion('from','New York, NY')">
+          <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <div><div class="sug-name">New York, NY</div><div class="sug-sub">The Big Apple</div></div>
+        </div>
+        <div class="sug-item" onclick="pickSuggestion('from','Boston, MA')">
+          <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <div><div class="sug-name">Boston, MA</div><div class="sug-sub">New England hub</div></div>
+        </div>
+        <div class="sug-item" onclick="pickSuggestion('from','Washington, DC')">
+          <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg></div>
+          <div><div class="sug-name">Washington, DC</div><div class="sug-sub">Capital region</div></div>
         </div>
       </div>
     </div>
-    <button class="maps-btn" onclick="openInMaps()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      Open route in Google Maps
-    </button>
-    <div id="share-nostop" style="margin-top:8px"></div>
-    <div class="back-link" style="margin-top:12px" onclick="resetToInput()">Plan another trip</div>
+
+    <!-- Step 2: Destination -->
+    <div class="step-body" id="step-2" style="display:none">
+      <div class="step-label">WHERE ARE YOU HEADED?</div>
+      <div class="route-connector">
+        <div class="connector-line">
+          <div class="dot" style="background:#888780"></div>
+          <div class="line"></div>
+          <div class="dot" style="background:#1D9E75"></div>
+        </div>
+        <div class="connector-fields">
+          <div class="locked-field"><span id="origin-display">New York, NY</span></div>
+          <input class="search-input" id="inp-to" type="text" placeholder="Search for your destination" autocomplete="off">
+        </div>
+      </div>
+      <div class="suggestions" id="sug-to">
+        <div class="sug-item" onclick="pickSuggestion('to','Provincetown, MA')">
+          <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
+          <div><div class="sug-name">Provincetown, MA</div><div class="sug-sub">Tip of Cape Cod</div></div>
+        </div>
+        <div class="sug-item" onclick="pickSuggestion('to','Burlington, VT')">
+          <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
+          <div><div class="sug-name">Burlington, VT</div><div class="sug-sub">Lake Champlain</div></div>
+        </div>
+        <div class="sug-item" onclick="pickSuggestion('to','Nags Head, NC')">
+          <div class="sug-icon"><svg viewBox="0 0 24 24"><path d="M17.8 19.2L16 11l-4-1-4 1-1.8 8.2M12 2C8 2 4 5 4 9c0 5 8 13 8 13s8-8 8-13c0-4-4-7-8-7z"/></svg></div>
+          <div><div class="sug-name">Nags Head, NC</div><div class="sug-sub">Outer Banks</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Trip details -->
+    <div class="step-body" id="step-3" style="display:none">
+      <div class="step-label">YOUR VEHICLE</div>
+      <div class="pill-scroll" id="vehicle-pills"></div>
+
+      <div class="step-label" style="margin-top:8px">WHO'S COMING ALONG?</div>
+      <p style="font-size:12px;color:#b0afa8;margin:-6px 0 8px">Affects how stops are scored for kids, dogs, outdoor space</p>
+      <div class="party-grid">
+        <button class="party-btn selected" onclick="pickParty(this,'Kids + dog')">
+          <svg viewBox="0 0 24 24"><path d="M16 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6 20v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/><circle cx="19" cy="14" r="2"/><path d="M19 16v3"/></svg>
+          <span>Kids + dog</span>
+        </button>
+        <button class="party-btn" onclick="pickParty(this,'Kids only')">
+          <svg viewBox="0 0 24 24"><path d="M16 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6 20v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4"/></svg>
+          <span>Kids only</span>
+        </button>
+        <button class="party-btn" onclick="pickParty(this,'Dog only')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 13v4M8 21h8M7 6l-2-3M17 6l2-3"/></svg>
+          <span>Dog only</span>
+        </button>
+        <button class="party-btn" onclick="pickParty(this,'Just us')">
+          <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span>Just us</span>
+        </button>
+      </div>
+    </div>
   </div>
-</div>
+
+  <!-- ═══════════════ SCREEN: LOADING ═══════════════ -->
+  <div class="screen" id="screen-loading">
+    <div class="loading-screen">
+      <div class="spinner"></div>
+      <p style="font-size:16px;font-weight:500;color:#2C2C2A;margin-bottom:4px">Building your route</p>
+      <p style="font-size:14px;color:#888780;line-height:1.4">Finding the best places to stop and putting together routes you'll actually want to drive. About 15 seconds.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SCREEN: ROUTES ═══════════════ -->
+  <div class="screen" id="screen-routes">
+    <div class="header">
+      <div class="brand" id="route-header-label">YOUR TRIP</div>
+      <div class="title" id="route-title"></div>
+      <div class="subtitle" id="route-subtitle"></div>
+    </div>
+    <div style="padding:16px 20px 0" id="routes-list"></div>
+    <div style="padding:0 20px">
+      <button class="maps-btn" onclick="openInMaps()" id="routes-maps-btn" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        Open full route in Google Maps
+      </button>
+    </div>
+    <div style="padding:0 20px">
+      <button class="maps-btn" style="background:#FAFDF9;border-color:#EDECE8;color:#5F5E5A" onclick="shareTrip()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/>
+        </svg>
+        <span id="share-btn-label">Share this trip</span>
+      </button>
+    </div>
+    <div style="padding:12px 20px">
+      <div class="back-link" onclick="resetToInput()">Plan a different drive</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SCREEN: STOP DETAIL ═══════════════ -->
+  <div class="screen" id="screen-detail">
+    <div class="detail-header">
+      <div class="detail-back" onclick="backToRoutes()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2C2C2A" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780">STOP DETAIL</div>
+      </div>
+    </div>
+    <div class="detail-body" id="detail-body"></div>
+  </div>
+
+  <!-- ═══════════════ SCREEN: NO STOP / TOO FAR ═══════════════ -->
+  <div class="screen" id="screen-nostop">
+    <div style="padding:60px 24px;text-align:center">
+      <div style="font-size:48px;margin-bottom:12px">&#9889;</div>
+      <div style="font-size:20px;font-weight:600;color:#2C2C2A;margin-bottom:8px">Straight through — no stop needed!</div>
+      <div style="font-size:15px;color:#5F5E5A;line-height:1.5" id="nostop-msg"></div>
+      <div id="nostop-svg" style="margin:16px 0"></div>
+
+      <div id="roundtrip-section" style="display:none">
+        <div style="height:1px;background:#EDECE8;margin:20px 0"></div>
+        <button class="loc-btn" style="justify-content:center;margin-bottom:12px" onclick="showRoundTrip()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          Planning a return trip?
+        </button>
+        <div id="roundtrip-detail" style="display:none;text-align:left">
+          <div style="background:#FAFDF9;border:1.5px solid #EDECE8;border-radius:14px;padding:16px;margin-bottom:12px">
+            <div style="font-size:11px;font-weight:600;letter-spacing:.06em;color:#888780;margin-bottom:6px">QUICK STOP ON THE WAY BACK</div>
+            <div style="font-size:15px;color:#2C2C2A;line-height:1.5" id="roundtrip-msg"></div>
+            <div id="roundtrip-charger" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="maps-btn" onclick="openInMaps()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        Open route in Google Maps
+      </button>
+      <div id="share-nostop" style="margin-top:8px"></div>
+      <div class="back-link" style="margin-top:12px" onclick="resetToInput()">Plan another trip</div>
+    </div>
+  </div>
 
 </div><!-- /app -->
 
-<!-- ═══════════════════ STICKY CTA ═════════════════════════ -->
+<!-- ═══════════════ STICKY CTA ═══════════════ -->
 <div class="cta-bar" id="cta-bar">
   <div class="back-link" id="cta-back" style="display:none" onclick="prevStep()">Back</div>
   <button class="cta-btn" id="cta-btn" disabled onclick="nextStep()">Set starting point</button>
 </div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────
-var currentStep = 1;
-var formData = { origin: '', destination: '', vehicle: 'tesla_model_y_lr', party: 'Kids + dog' };
-var searchResult = null;
+/* ══════════════════════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════════════════════ */
+var currentStep   = 1;
+var formData      = { origin: '', destination: '', vehicle: 'tesla_model_y_lr', party: 'Kids + dog' };
+var searchResult  = null;
 var decodedPolyline = null;
-var currentStops = []; // stops for selected route
-var activeScreen = 'screen-input';
+var currentStops  = [];
+var activeScreen  = 'screen-input';
 
 var VEHICLES = [
-  { id:'tesla_model_y_lr', label:'Model Y LR' },{ id:'tesla_model_y_sr', label:'Model Y' },
-  { id:'tesla_model_3_lr', label:'Model 3 LR' },{ id:'tesla_model_3_sr', label:'Model 3' },
-  { id:'tesla_cybertruck', label:'Cybertruck' },{ id:'rivian_r1t', label:'Rivian R1T' },
-  { id:'rivian_r1s', label:'Rivian R1S' },{ id:'ford_mach_e', label:'Mach-E' },
-  { id:'ford_f150_lightning', label:'F-150 Lightning' },{ id:'chevy_equinox_ev', label:'Equinox EV' },
-  { id:'chevy_blazer_ev', label:'Blazer EV' },{ id:'hyundai_ioniq_5', label:'Ioniq 5' },
-  { id:'hyundai_ioniq_6', label:'Ioniq 6' },{ id:'kia_ev6', label:'Kia EV6' },
-  { id:'kia_ev9', label:'Kia EV9' },{ id:'bmw_ix', label:'BMW iX' },
-  { id:'mercedes_eqs', label:'EQS' },{ id:'vw_id4', label:'VW ID.4' },
-  { id:'porsche_taycan', label:'Taycan' },{ id:'lucid_air', label:'Lucid Air' },
-  { id:'cadillac_lyriq', label:'Lyriq' },{ id:'polestar_2', label:'Polestar 2' },
-  { id:'nissan_ariya', label:'Ariya' }
+  { id: 'tesla_model_y_lr',     label: 'Model Y LR' },
+  { id: 'tesla_model_y_sr',     label: 'Model Y' },
+  { id: 'tesla_model_3_lr',     label: 'Model 3 LR' },
+  { id: 'tesla_model_3_sr',     label: 'Model 3' },
+  { id: 'tesla_cybertruck',     label: 'Cybertruck' },
+  { id: 'rivian_r1t',           label: 'Rivian R1T' },
+  { id: 'rivian_r1s',           label: 'Rivian R1S' },
+  { id: 'ford_mach_e',          label: 'Mach-E' },
+  { id: 'ford_f150_lightning',  label: 'F-150 Lightning' },
+  { id: 'chevy_equinox_ev',     label: 'Equinox EV' },
+  { id: 'chevy_blazer_ev',      label: 'Blazer EV' },
+  { id: 'hyundai_ioniq_5',      label: 'Ioniq 5' },
+  { id: 'hyundai_ioniq_6',      label: 'Ioniq 6' },
+  { id: 'kia_ev6',              label: 'Kia EV6' },
+  { id: 'kia_ev9',              label: 'Kia EV9' },
+  { id: 'bmw_ix',               label: 'BMW iX' },
+  { id: 'mercedes_eqs',         label: 'EQS' },
+  { id: 'vw_id4',               label: 'VW ID.4' },
+  { id: 'porsche_taycan',       label: 'Taycan' },
+  { id: 'lucid_air',            label: 'Lucid Air' },
+  { id: 'cadillac_lyriq',       label: 'Lyriq' },
+  { id: 'polestar_2',           label: 'Polestar 2' },
+  { id: 'nissan_ariya',         label: 'Ariya' }
 ];
 
-// ── Init vehicle pills ───────────────────────────────────────────────
-(function(){
-  var html = VEHICLES.map(function(v){
-    return '<div class="pill'+(v.id===formData.vehicle?' selected':'')+'" onclick="pickVehicle(\''+v.id+'\',this)">'+v.label+'</div>';
-  }).join('');
-  document.getElementById('vehicle-pills').innerHTML = html;
-})();
+/* ══════════════════════════════════════════════════════════════
+   HELPER / UTILITY FUNCTIONS
+   ══════════════════════════════════════════════════════════════ */
 
-// ── Screen transitions ───────────────────────────────────────────────
+/** Format minutes as "Xh Ym" or "Xm". */
+function fmt(m) {
+  if (m < 60) return m + 'm';
+  var h = Math.floor(m / 60), r = m % 60;
+  return r ? h + 'h ' + r + 'm' : h + 'h';
+}
+
+/** Color for a stop score. */
+function scoreColor(s) {
+  if (s >= 75) return '#0F6E56';
+  if (s >= 50) return '#854F0B';
+  return '#888780';
+}
+
+/** Label word for a stop score. */
+function scoreWord(s) {
+  if (s >= 85) return 'Wonderful';
+  if (s >= 70) return 'Great stop';
+  if (s >= 55) return 'Decent';
+  return 'Basic';
+}
+
+/** Decode a Google-encoded polyline string into an array of {lat, lng}. */
+function decodePolyline(encoded) {
+  var pts = [], idx = 0, lat = 0, lng = 0;
+  while (idx < encoded.length) {
+    var b, shift, result;
+    // Latitude
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    // Longitude
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    pts.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return pts;
+}
+
+/**
+ * Build an SVG of the route polyline with stop dots.
+ * @param {Array}  stops       - array of stop objects with .lat/.lng
+ * @param {number} selectedIdx - index of the highlighted stop (or null)
+ * @param {number} w           - SVG width  (default 200)
+ * @param {number} h           - SVG height (default 80)
+ */
+function routeSVG(stops, selectedIdx, w, h) {
+  if (!decodedPolyline || !decodedPolyline.length) return '';
+  w = w || 200;
+  h = h || 80;
+
+  var pts = decodedPolyline;
+  var pad = 14;
+
+  // Bounding box
+  var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  pts.forEach(function (p) {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  });
+
+  var rX = maxLng - minLng || .001;
+  var rY = maxLat - minLat || .001;
+  var sc = Math.min((w - pad * 2) / rX, (h - pad * 2) / rY);
+  var oX = pad + ((w - pad * 2) - rX * sc) / 2;
+  var oY = pad + ((h - pad * 2) - rY * sc) / 2;
+
+  function tx(p) { return (oX + (p.lng - minLng) * sc).toFixed(1); }
+  function ty(p) { return (oY + (maxLat - p.lat) * sc).toFixed(1); }
+
+  // Simplify polyline for SVG
+  var step = Math.max(1, Math.floor(pts.length / 80));
+  var simp = [];
+  for (var i = 0; i < pts.length; i += step) simp.push(pts[i]);
+  if (simp[simp.length - 1] !== pts[pts.length - 1]) simp.push(pts[pts.length - 1]);
+
+  var d = 'M' + simp.map(function (p) { return tx(p) + ',' + ty(p); }).join('L');
+
+  // Stop dots
+  var dots = (stops || []).map(function (s, si) {
+    var best = pts[0], bd = Infinity;
+    for (var j = 0; j < pts.length; j += Math.max(1, Math.floor(pts.length / 200))) {
+      var dd = Math.pow(pts[j].lat - s.lat, 2) + Math.pow(pts[j].lng - s.lng, 2);
+      if (dd < bd) { bd = dd; best = pts[j]; }
+    }
+    var isSel = si === selectedIdx, r = isSel ? 5.5 : 3.5;
+    return '<circle cx="' + tx(best) + '" cy="' + ty(best) + '" r="' + r +
+      '" fill="' + (isSel ? '#1D9E75' : '#5DCAA5') + '" stroke="#fff" stroke-width="1.5"/>';
+  });
+
+  return '<svg class="route-svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">' +
+    '<path d="' + d + '" fill="none" stroke="#e0ded8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="' + d + '" fill="none" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<circle cx="' + tx(pts[0]) + '" cy="' + ty(pts[0]) + '" r="4.5" fill="#2C2C2A" stroke="#fff" stroke-width="1.5"/>' +
+    '<circle cx="' + tx(pts[pts.length - 1]) + '" cy="' + ty(pts[pts.length - 1]) + '" r="4.5" fill="#2C2C2A" stroke="#fff" stroke-width="1.5"/>' +
+    dots.join('') + '</svg>';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN TRANSITIONS
+   ══════════════════════════════════════════════════════════════ */
+
 function showScreen(id) {
-  var screens = document.querySelectorAll('.screen');
-  screens.forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
   var el = document.getElementById(id);
-  // Force reflow for animation
   el.style.display = '';
-  void el.offsetWidth;
+  void el.offsetWidth; // force reflow for animation
   el.classList.add('active');
   activeScreen = id;
-  // Show/hide CTA bar
-  var ctaBar = document.getElementById('cta-bar');
-  ctaBar.style.display = (id === 'screen-input') ? '' : 'none';
+  document.getElementById('cta-bar').style.display = (id === 'screen-input') ? '' : 'none';
   window.scrollTo(0, 0);
 }
 
-// ── Step flow ────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════
+   STEP FLOW (INPUT SCREEN)
+   ══════════════════════════════════════════════════════════════ */
+
 function showStep(n) {
   currentStep = n;
-  ['step-1','step-2','step-3'].forEach(function(id, i){
-    document.getElementById(id).style.display = (i+1===n) ? '' : 'none';
+  ['step-1', 'step-2', 'step-3'].forEach(function (id, i) {
+    document.getElementById(id).style.display = (i + 1 === n) ? '' : 'none';
   });
+
   // Progress bar
   for (var i = 1; i <= 3; i++) {
-    var seg = document.getElementById('prog-'+i);
+    var seg = document.getElementById('prog-' + i);
     seg.className = 'progress-seg' + (i < n ? ' done' : i === n ? ' current' : '');
   }
-  // CTA label + state
-  var btn = document.getElementById('cta-btn');
+
+  // CTA label + back link
+  var btn  = document.getElementById('cta-btn');
   var back = document.getElementById('cta-back');
   if (n === 1) { btn.textContent = 'Set starting point'; back.style.display = 'none'; }
-  if (n === 2) { btn.textContent = 'Set destination'; back.style.display = ''; }
-  if (n === 3) { btn.textContent = 'Build your trip'; back.style.display = ''; }
+  if (n === 2) { btn.textContent = 'Set destination';    back.style.display = ''; }
+  if (n === 3) { btn.textContent = 'Build your trip';    back.style.display = ''; }
   updateCTAState();
+
   // Hide how-it-works after step 1
   var hiw = document.getElementById('hiw-strip');
   if (hiw) hiw.style.display = n > 1 ? 'none' : '';
@@ -426,9 +751,9 @@ function showStep(n) {
 
 function updateCTAState() {
   var btn = document.getElementById('cta-btn');
-  if (currentStep === 1) btn.disabled = !formData.origin;
+  if (currentStep === 1)      btn.disabled = !formData.origin;
   else if (currentStep === 2) btn.disabled = !formData.destination;
-  else btn.disabled = false;
+  else                        btn.disabled = false;
 }
 
 function nextStep() {
@@ -436,7 +761,7 @@ function nextStep() {
     if (!formData.origin) return;
     document.getElementById('origin-display').textContent = formData.origin;
     showStep(2);
-    setTimeout(function(){ document.getElementById('inp-to').focus(); }, 100);
+    setTimeout(function () { document.getElementById('inp-to').focus(); }, 100);
   } else if (currentStep === 2) {
     if (!formData.destination) return;
     showStep(3);
@@ -449,12 +774,16 @@ function prevStep() {
   if (currentStep > 1) showStep(currentStep - 1);
 }
 
-// ── Input handlers ───────────────────────────────────────────────────
-document.getElementById('inp-from').addEventListener('input', function(e) {
+/* ══════════════════════════════════════════════════════════════
+   INPUT HANDLERS
+   ══════════════════════════════════════════════════════════════ */
+
+document.getElementById('inp-from').addEventListener('input', function (e) {
   formData.origin = e.target.value.trim();
   updateCTAState();
 });
-document.getElementById('inp-to').addEventListener('input', function(e) {
+
+document.getElementById('inp-to').addEventListener('input', function (e) {
   formData.destination = e.target.value.trim();
   updateCTAState();
 });
@@ -476,123 +805,88 @@ function useMyLocation() {
     alert('Location is not available on this device.');
     return;
   }
+
   var btn = document.querySelector('.loc-btn');
   var origHTML = btn.innerHTML;
   btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;margin:0"></div> Finding you\u2026';
   btn.disabled = true;
 
-  navigator.geolocation.getCurrentPosition(function(pos) {
-    var lat = pos.coords.latitude;
-    var lng = pos.coords.longitude;
-    var coords = lat.toFixed(5) + ',' + lng.toFixed(5);
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      var coords = lat.toFixed(5) + ',' + lng.toFixed(5);
 
-    // Try to reverse-geocode to a readable name via Places
-    if (window.google && google.maps && google.maps.Geocoder) {
-      var geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: { lat: lat, lng: lng } }, function(results, status) {
+      if (window.google && google.maps && google.maps.Geocoder) {
+        var geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat: lat, lng: lng } }, function (results, status) {
+          btn.innerHTML = origHTML;
+          btn.disabled = false;
+          if (status === 'OK' && results && results[0]) {
+            var addr = results[0].formatted_address;
+            formData.origin = addr;
+            document.getElementById('inp-from').value = addr;
+          } else {
+            formData.origin = coords;
+            document.getElementById('inp-from').value = 'My location (' + coords + ')';
+          }
+          updateCTAState();
+          nextStep();
+        });
+      } else {
         btn.innerHTML = origHTML;
         btn.disabled = false;
-        if (status === 'OK' && results && results[0]) {
-          var addr = results[0].formatted_address;
-          formData.origin = addr;
-          document.getElementById('inp-from').value = addr;
-        } else {
-          formData.origin = coords;
-          document.getElementById('inp-from').value = 'My location (' + coords + ')';
-        }
+        formData.origin = coords;
+        document.getElementById('inp-from').value = 'My location (' + coords + ')';
         updateCTAState();
         nextStep();
-      });
-    } else {
+      }
+    },
+    function (err) {
       btn.innerHTML = origHTML;
       btn.disabled = false;
-      formData.origin = coords;
-      document.getElementById('inp-from').value = 'My location (' + coords + ')';
-      updateCTAState();
-      nextStep();
-    }
-  }, function(err) {
-    btn.innerHTML = origHTML;
-    btn.disabled = false;
-    if (err.code === 1) {
-      alert('Location access was denied. You can type your starting point instead.');
-    } else {
-      alert('Could not get your location. Try typing your starting point instead.');
-    }
-  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+      if (err.code === 1) {
+        alert('Location access was denied. You can type your starting point instead.');
+      } else {
+        alert('Could not get your location. Try typing your starting point instead.');
+      }
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+  );
 }
 
 function pickVehicle(id, el) {
   formData.vehicle = id;
-  document.querySelectorAll('.pill').forEach(function(p){ p.classList.remove('selected'); });
+  document.querySelectorAll('.pill').forEach(function (p) { p.classList.remove('selected'); });
   el.classList.add('selected');
 }
 
 function pickParty(el, val) {
   formData.party = val;
-  document.querySelectorAll('.party-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.querySelectorAll('.party-btn').forEach(function (b) { b.classList.remove('selected'); });
   el.classList.add('selected');
 }
 
-// ── Utilities ────────────────────────────────────────────────────────
-function fmt(m) { if (m<60) return m+'m'; var h=Math.floor(m/60),r=m%60; return r?h+'h '+r+'m':h+'h'; }
-function scoreColor(s) { return s>=75?'#0F6E56':s>=50?'#854F0B':'#888780'; }
-function scoreWord(s) { return s>=85?'Wonderful':s>=70?'Great stop':s>=55?'Decent':'Basic'; }
+/* ══════════════════════════════════════════════════════════════
+   SEARCH (API CALL)
+   ══════════════════════════════════════════════════════════════ */
 
-function decodePolyline(encoded) {
-  var pts=[],idx=0,lat=0,lng=0;
-  while(idx<encoded.length){var b,shift=0,result=0;do{b=encoded.charCodeAt(idx++)-63;result|=(b&0x1f)<<shift;shift+=5}while(b>=0x20);
-  lat+=(result&1)?~(result>>1):(result>>1);shift=0;result=0;do{b=encoded.charCodeAt(idx++)-63;result|=(b&0x1f)<<shift;shift+=5}while(b>=0x20);
-  lng+=(result&1)?~(result>>1):(result>>1);pts.push({lat:lat/1e5,lng:lng/1e5})}return pts;
-}
-
-function routeSVG(stops, selectedIdx, w, h) {
-  if(!decodedPolyline||!decodedPolyline.length) return '';
-  w=w||200; h=h||80;
-  var pts=decodedPolyline,pad=14;
-  var minLat=Infinity,maxLat=-Infinity,minLng=Infinity,maxLng=-Infinity;
-  pts.forEach(function(p){if(p.lat<minLat)minLat=p.lat;if(p.lat>maxLat)maxLat=p.lat;if(p.lng<minLng)minLng=p.lng;if(p.lng>maxLng)maxLng=p.lng});
-  var rX=maxLng-minLng||.001,rY=maxLat-minLat||.001;
-  var sc=Math.min((w-pad*2)/rX,(h-pad*2)/rY);
-  var oX=pad+((w-pad*2)-rX*sc)/2,oY=pad+((h-pad*2)-rY*sc)/2;
-  function tx(p){return(oX+(p.lng-minLng)*sc).toFixed(1)}
-  function ty(p){return(oY+(maxLat-p.lat)*sc).toFixed(1)}
-  var step=Math.max(1,Math.floor(pts.length/80)),simp=[];
-  for(var i=0;i<pts.length;i+=step)simp.push(pts[i]);
-  if(simp[simp.length-1]!==pts[pts.length-1])simp.push(pts[pts.length-1]);
-  var d='M'+simp.map(function(p){return tx(p)+','+ty(p)}).join('L');
-  var dots=(stops||[]).map(function(s,si){
-    var best=pts[0],bd=Infinity;
-    for(var j=0;j<pts.length;j+=Math.max(1,Math.floor(pts.length/200))){var dd=Math.pow(pts[j].lat-s.lat,2)+Math.pow(pts[j].lng-s.lng,2);if(dd<bd){bd=dd;best=pts[j]}}
-    var isSel=si===selectedIdx,r=isSel?5.5:3.5;
-    return '<circle cx="'+tx(best)+'" cy="'+ty(best)+'" r="'+r+'" fill="'+(isSel?'#1D9E75':'#5DCAA5')+'" stroke="#fff" stroke-width="1.5"/>';
-  });
-  return '<svg class="route-svg" viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'">'+
-    '<path d="'+d+'" fill="none" stroke="#e0ded8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>'+
-    '<path d="'+d+'" fill="none" stroke="#5DCAA5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
-    '<circle cx="'+tx(pts[0])+'" cy="'+ty(pts[0])+'" r="4.5" fill="#2C2C2A" stroke="#fff" stroke-width="1.5"/>'+
-    '<circle cx="'+tx(pts[pts.length-1])+'" cy="'+ty(pts[pts.length-1])+'" r="4.5" fill="#2C2C2A" stroke="#fff" stroke-width="1.5"/>'+
-    dots.join('')+'</svg>';
-}
-
-function openInMaps() {
-  var parts = [formData.origin];
-  currentStops.forEach(function(c){ parts.push(c.address); });
-  parts.push(formData.destination);
-  window.open('https://www.google.com/maps/dir/' + parts.map(encodeURIComponent).join('/'), '_blank');
-}
-
-// ── Search ───────────────────────────────────────────────────────────
 async function runSearch() {
   showScreen('screen-loading');
   try {
     var res = await fetch('/.netlify/functions/search', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ origin: formData.origin, destination: formData.destination, travellerType: formData.party, vehicle: formData.vehicle })
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origin: formData.origin,
+        destination: formData.destination,
+        travellerType: formData.party,
+        vehicle: formData.vehicle
+      })
     });
     searchResult = await res.json();
     if (searchResult.error) throw new Error(searchResult.error);
-  } catch(e) {
+  } catch (e) {
     showScreen('screen-input');
     showStep(3);
     alert('Search failed: ' + e.message);
@@ -601,24 +895,26 @@ async function runSearch() {
 
   if (searchResult.polyline) decodedPolyline = decodePolyline(searchResult.polyline);
 
-  // Handle too-far trips
+  // Too-far trips (1000 mi cap)
   if (searchResult.tooFar) {
     document.getElementById('nostop-msg').textContent = searchResult.message;
-    document.getElementById('nostop-svg').innerHTML = routePolyline ? routeSVG([], null) : '';
+    document.getElementById('nostop-svg').innerHTML = decodedPolyline ? routeSVG([], null) : '';
     document.getElementById('roundtrip-section').style.display = 'none';
-    document.querySelector('#screen-nostop div:first-child > div:first-child').textContent = '🗺️';
-    document.querySelector('#screen-nostop div:first-child > div:nth-child(2)').textContent = 'That\'s a big one!';
+    document.querySelector('#screen-nostop div:first-child > div:first-child').textContent = '\uD83D\uDDFA\uFE0F';
+    document.querySelector('#screen-nostop div:first-child > div:nth-child(2)').textContent = "That's a big one!";
     showScreen('screen-nostop');
     return;
   }
 
+  // No stop needed
   if (searchResult.noStopNeeded) {
     document.getElementById('nostop-msg').textContent = searchResult.noStopMessage;
     document.getElementById('nostop-svg').innerHTML = routeSVG([], null);
-    // Round trip section
+
     var rtSection = document.getElementById('roundtrip-section');
-    var rtDetail = document.getElementById('roundtrip-detail');
+    var rtDetail  = document.getElementById('roundtrip-detail');
     rtDetail.style.display = 'none';
+
     if (searchResult.roundTripNeedsCharge && searchResult.roundTripStop) {
       rtSection.style.display = '';
       var rt = searchResult.roundTripStop;
@@ -628,81 +924,111 @@ async function runSearch() {
           '<div style="width:36px;height:36px;border-radius:10px;background:#E8F7F1;display:flex;align-items:center;justify-content:center;flex-shrink:0">' +
             '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>' +
           '</div>' +
-          '<div><div style="font-size:14px;font-weight:500;color:#2C2C2A">'+rt.name+'</div>' +
-          '<div style="font-size:12px;color:#888780">'+rt.network+' · '+rt.kw+'kW · ~'+rt.chargeMinutes+' min</div></div>' +
+          '<div><div style="font-size:14px;font-weight:500;color:#2C2C2A">' + rt.name + '</div>' +
+          '<div style="font-size:12px;color:#888780">' + rt.network + ' \u00B7 ' + rt.kw + 'kW \u00B7 ~' + rt.chargeMinutes + ' min</div></div>' +
         '</div>';
     } else {
       rtSection.style.display = 'none';
     }
+
     updateShareURL();
     showScreen('screen-nostop');
     return;
   }
 
+  // Normal route results
   renderRoutes();
   updateShareURL();
   showScreen('screen-routes');
 }
 
-// ── Render route list ────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════
+   RENDER: ROUTE LIST
+   ══════════════════════════════════════════════════════════════ */
+
 function renderRoutes() {
   var data = searchResult;
   var strategies = data.strategies || [];
+
+  // Fallback: wrap raw chargers into a single strategy
   if (!strategies.length && data.chargers && data.chargers.length) {
-    strategies = [{ name:'The Route', tagline:'All available stops', emoji:'⚡', recommended:true, stops:data.chargers }];
+    strategies = [{
+      name: 'The Route', tagline: 'All available stops',
+      emoji: '\u26A1', recommended: true, stops: data.chargers
+    }];
   }
 
   var oName = formData.origin.split(',')[0];
   var dName = formData.destination.split(',')[0];
-  document.getElementById('route-title').textContent = oName + ' → ' + dName;
-  var driveStr = data.totalDriveMinutes ? ' · ' + fmt(data.totalDriveMinutes) + ' drive' : '';
+  document.getElementById('route-title').textContent = oName + ' \u2192 ' + dName;
+
+  var driveStr = data.totalDriveMinutes ? ' \u00B7 ' + fmt(data.totalDriveMinutes) + ' drive' : '';
   document.getElementById('route-subtitle').textContent = (data.totalDistanceMi || '?') + ' miles' + driveStr;
   document.getElementById('routes-maps-btn').style.display = strategies.length ? '' : 'none';
 
   if (!strategies.length) {
-    document.getElementById('routes-list').innerHTML = '<p style="padding:20px;color:#888780;font-size:15px;">No chargers found along this route.</p>';
+    document.getElementById('routes-list').innerHTML =
+      '<p style="padding:20px;color:#888780;font-size:15px;">No chargers found along this route.</p>';
     return;
   }
 
-  // Set currentStops to recommended strategy stops by default
-  var recIdx = strategies.findIndex(function(s){ return s.recommended; });
+  // Default currentStops to recommended strategy
+  var recIdx = strategies.findIndex(function (s) { return s.recommended; });
   if (recIdx === -1) recIdx = 0;
-  currentStops = (strategies[recIdx].stops || []).slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; });
+  currentStops = (strategies[recIdx].stops || []).slice()
+    .sort(function (a, b) { return a.distanceFromOriginMi - b.distanceFromOriginMi; });
 
   var html = '<div class="step-label" style="margin-bottom:8px">WAYS TO MAKE THIS DRIVE</div>';
-  strategies.forEach(function(s, i) {
-    var stops = s.stops || [];
-    var total = s.totalTripMinutes || 0;
-    var charge = s.totalChargingMinutes || 0;
-    var legs = s.legs || [];
-    // Build stop score summary
-    var stopScores = stops.slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; }).map(function(st) {
-      var shortName = st.name.split(' - ')[0].split(',')[0];
-      var sc = st.score || 0;
-      return '<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:'+scoreColor(sc)+';display:inline-block"></span> '+shortName+' <span style="color:'+scoreColor(sc)+';font-weight:500">'+sc+'</span></span>';
-    });
-    var stopsLine = stops.length + ' stop' + (stops.length!==1?'s':'');
 
+  strategies.forEach(function (s, i) {
+    var stops  = s.stops || [];
+    var total  = s.totalTripMinutes || 0;
+    var charge = s.totalChargingMinutes || 0;
+    var legs   = s.legs || [];
+
+    // Stop score chips
+    var stopScores = stops.slice()
+      .sort(function (a, b) { return a.distanceFromOriginMi - b.distanceFromOriginMi; })
+      .map(function (st) {
+        var shortName = st.name.split(' - ')[0].split(',')[0];
+        var sc = st.score || 0;
+        return '<span style="display:inline-flex;align-items:center;gap:4px">' +
+          '<span style="width:7px;height:7px;border-radius:50%;background:' + scoreColor(sc) + ';display:inline-block"></span> ' +
+          shortName + ' <span style="color:' + scoreColor(sc) + ';font-weight:500">' + sc + '</span></span>';
+      });
+
+    var stopsLine = stops.length + ' stop' + (stops.length !== 1 ? 's' : '');
+
+    // Leg breakdown
     var legHTML = '';
     if (legs.length) {
       legHTML = '<div class="leg-breakdown">';
-      legs.forEach(function(leg) {
-        var icon = leg.type==='drive'?'🚗':'⚡';
-        var detail = leg.type==='drive' && leg.miles ? leg.miles+' mi' : '';
-        legHTML += '<div class="leg-item"><span class="leg-icon">'+icon+'</span><span style="flex:1">'+leg.label+(detail?' · '+detail:'')+'</span><span class="leg-time">'+fmt(leg.minutes)+'</span></div>';
+      legs.forEach(function (leg) {
+        var icon   = leg.type === 'drive' ? '\uD83D\uDE97' : '\u26A1';
+        var detail = (leg.type === 'drive' && leg.miles) ? leg.miles + ' mi' : '';
+        legHTML += '<div class="leg-item"><span class="leg-icon">' + icon + '</span>' +
+          '<span style="flex:1">' + leg.label + (detail ? ' \u00B7 ' + detail : '') + '</span>' +
+          '<span class="leg-time">' + fmt(leg.minutes) + '</span></div>';
       });
       legHTML += '</div>';
     }
 
-    html += '<div class="route-card'+(s.recommended?' recommended':'')+'" onclick="openRouteDetail('+i+')">' +
+    html += '<div class="route-card' + (s.recommended ? ' recommended' : '') + '" onclick="openRouteDetail(' + i + ')">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">' +
-        '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+(s.emoji||'⚡')+'</span><span style="font-size:16px;font-weight:600;color:#2C2C2A">'+s.name+'</span></div>' +
-        (s.recommended?'<span class="recommended-tag">RECOMMENDED</span>':'') +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:18px">' + (s.emoji || '\u26A1') + '</span>' +
+          '<span style="font-size:16px;font-weight:600;color:#2C2C2A">' + s.name + '</span>' +
+        '</div>' +
+        (s.recommended ? '<span class="recommended-tag">RECOMMENDED</span>' : '') +
       '</div>' +
-      '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:4px">'+s.tagline+'</p>' +
-      '<p style="font-size:13px;color:#888780;margin-bottom:2px">'+stopsLine+'</p>' +
-      (stopScores.length ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;font-size:13px">'+stopScores.join('')+'</div>' : '') +
-      (total ? '<div class="timing-row"><span class="timing-pill timing-total">'+fmt(total)+' total</span><span class="timing-pill timing-drive">'+fmt(total-charge)+' driving</span><span class="timing-pill timing-charge">'+fmt(charge)+' charging</span></div>' : '') +
+      '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:4px">' + s.tagline + '</p>' +
+      '<p style="font-size:13px;color:#888780;margin-bottom:2px">' + stopsLine + '</p>' +
+      (stopScores.length ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;font-size:13px">' + stopScores.join('') + '</div>' : '') +
+      (total ? '<div class="timing-row">' +
+        '<span class="timing-pill timing-total">' + fmt(total) + ' total</span>' +
+        '<span class="timing-pill timing-drive">' + fmt(total - charge) + ' driving</span>' +
+        '<span class="timing-pill timing-charge">' + fmt(charge) + ' charging</span>' +
+      '</div>' : '') +
       routeSVG(stops, null) +
       legHTML +
     '</div>';
@@ -713,13 +1039,17 @@ function renderRoutes() {
   document.getElementById('routes-list').innerHTML = html;
 }
 
-// ── Route detail → expand stops ──────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════
+   RENDER: STOP DETAIL
+   ══════════════════════════════════════════════════════════════ */
+
 function openRouteDetail(stratIdx) {
   var strat = searchResult._strategies[stratIdx];
-  var stops = (strat.stops || []).slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
-  currentStops = (strat.stops || []).slice().sort(function(a,b){ return a.distanceFromOriginMi - b.distanceFromOriginMi; });
+  var stops = (strat.stops || []).slice()
+    .sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+  currentStops = (strat.stops || []).slice()
+    .sort(function (a, b) { return a.distanceFromOriginMi - b.distanceFromOriginMi; });
   if (!stops.length) return;
-  // Show the best stop's detail
   showStopDetail(stops[0], 0);
 }
 
@@ -727,165 +1057,238 @@ function showStopDetail(stop, stopIdx) {
   var c = stop;
   var html = '';
 
-  // Route SVG with this stop highlighted
-  var stratStops = currentStops;
-  var highlightIdx = stratStops.indexOf(c);
+  // Route SVG with highlighted dot
+  var highlightIdx = currentStops.indexOf(c);
   if (highlightIdx === -1) highlightIdx = stopIdx;
-  html += routeSVG(stratStops, highlightIdx, 240, 100);
+  html += routeSVG(currentStops, highlightIdx, 240, 100);
 
   // Last reliable badge
-  if (c.lastReliable) html += '<div class="last-reliable-badge">Last reliable fast charger</div>';
-
-  // Score
-  html += '<div class="score-big"><div class="score-num" style="color:'+scoreColor(c.score)+'">'+c.score+'</div><div><div class="score-label" style="color:'+scoreColor(c.score)+'">'+scoreWord(c.score)+'</div><div style="font-size:12px;color:#888780;margin-top:1px">'+c.network+' · '+c.kw+'kW</div></div></div>';
-  html += '<div style="font-size:18px;font-weight:600;color:#2C2C2A;margin-bottom:4px">'+c.name+'</div>';
-  html += '<div style="font-size:14px;color:#888780;line-height:1.4;margin-bottom:4px">'+c.address+'</div>';
-
-  // Timing
-  html += '<div class="timing-detail">';
-  html += '<div class="timing-detail-item"><div class="timing-detail-val">'+fmt(c.driveMinutesFromOrigin||0)+'</div><div class="timing-detail-label">to this stop</div></div>';
-  html += '<div class="timing-detail-item"><div class="timing-detail-val">~'+fmt(c.chargingMinutes||20)+'</div><div class="timing-detail-label">charge time</div></div>';
-  html += '<div class="timing-detail-item"><div class="timing-detail-val">'+c.distanceFromOriginMi+'</div><div class="timing-detail-label">miles in</div></div>';
-  html += '</div>';
-
-  if (c.lastReliable) html += '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>';
-  if (c.caveat) html += '<div style="font-size:14px;color:#854F0B;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:10px;line-height:1.4">'+c.caveat+'</div>';
-
-  // Amenity sections
-  if (c.food) {
-    html += '<div class="detail-section"><div class="detail-section-label">FOOD</div><div><span class="food-badge food-'+(c.foodTier||'chain')+'">'+(c.foodTier==='local'?'local favorite':c.foodTier==='mid'?'regional':'chain')+'</span><span class="detail-section-text">'+c.food+'</span></div></div>';
+  if (c.lastReliable) {
+    html += '<div class="last-reliable-badge">Last reliable fast charger</div>';
   }
-  if (c.coffee) html += '<div class="detail-section"><div class="detail-section-label">COFFEE</div><div class="detail-section-text">'+c.coffee+'</div></div>';
-  if (c.outdoors) html += '<div class="detail-section"><div class="detail-section-label">OUTDOORS</div><div class="detail-section-text">'+c.outdoors+'</div></div>';
-  if (c.kids) html += '<div class="detail-section"><div class="detail-section-label">FOR KIDS</div><div class="detail-section-text">'+c.kids+'</div></div>';
 
-  // Other stops in this route
+  // Score block
+  html += '<div class="score-big">' +
+    '<div class="score-num" style="color:' + scoreColor(c.score) + '">' + c.score + '</div>' +
+    '<div>' +
+      '<div class="score-label" style="color:' + scoreColor(c.score) + '">' + scoreWord(c.score) + '</div>' +
+      '<div style="font-size:12px;color:#888780;margin-top:1px">' + c.network + ' \u00B7 ' + c.kw + 'kW</div>' +
+    '</div>' +
+  '</div>';
+
+  // Name + address
+  html += '<div style="font-size:18px;font-weight:600;color:#2C2C2A;margin-bottom:4px">' + c.name + '</div>';
+  html += '<div style="font-size:14px;color:#888780;line-height:1.4;margin-bottom:4px">' + c.address + '</div>';
+
+  // Timing grid
+  html += '<div class="timing-detail">' +
+    '<div class="timing-detail-item"><div class="timing-detail-val">' + fmt(c.driveMinutesFromOrigin || 0) + '</div><div class="timing-detail-label">to this stop</div></div>' +
+    '<div class="timing-detail-item"><div class="timing-detail-val">~' + fmt(c.chargingMinutes || 20) + '</div><div class="timing-detail-label">charge time</div></div>' +
+    '<div class="timing-detail-item"><div class="timing-detail-val">' + c.distanceFromOriginMi + '</div><div class="timing-detail-label">miles in</div></div>' +
+  '</div>';
+
+  // Warnings
+  if (c.lastReliable) {
+    html += '<div class="last-reliable-warning">Leave here at 90%+ — options get limited after this point.</div>';
+  }
+  if (c.caveat) {
+    html += '<div style="font-size:14px;color:#854F0B;background:#FFFBEB;border-radius:10px;padding:10px 14px;margin-top:10px;line-height:1.4">' + c.caveat + '</div>';
+  }
+
+  // Amenities
+  if (c.food) {
+    var tier = c.foodTier || 'chain';
+    var tierLabel = tier === 'local' ? 'local favorite' : tier === 'mid' ? 'regional' : 'chain';
+    html += '<div class="detail-section"><div class="detail-section-label">FOOD</div>' +
+      '<div><span class="food-badge food-' + tier + '">' + tierLabel + '</span>' +
+      '<span class="detail-section-text">' + c.food + '</span></div></div>';
+  }
+  if (c.coffee) {
+    html += '<div class="detail-section"><div class="detail-section-label">COFFEE</div>' +
+      '<div class="detail-section-text">' + c.coffee + '</div></div>';
+  }
+  if (c.outdoors) {
+    html += '<div class="detail-section"><div class="detail-section-label">OUTDOORS</div>' +
+      '<div class="detail-section-text">' + c.outdoors + '</div></div>';
+  }
+  if (c.kids) {
+    html += '<div class="detail-section"><div class="detail-section-label">FOR KIDS</div>' +
+      '<div class="detail-section-text">' + c.kids + '</div></div>';
+  }
+
+  // Other stops
   if (currentStops.length > 1) {
     html += '<div class="detail-section"><div class="detail-section-label">OTHER STOPS ON THIS ROUTE</div>';
-    currentStops.forEach(function(s, i) {
+    currentStops.forEach(function (s, i) {
       if (s.id === c.id) return;
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F5F3;cursor:pointer" onclick="showStopDetail(searchResult._strategies.flatMap(function(st){return st.stops||[]}).find(function(x){return x.id==='+s.id+'}),'+i+')">' +
-        '<div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:'+scoreColor(s.score)+'"></div><span style="font-size:14px;font-weight:500">'+s.name.split(' - ')[0].split(',')[0]+'</span></div>' +
-        '<span style="font-size:13px;color:#888780">'+scoreWord(s.score)+' · '+s.score+'</span></div>';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F5F5F3;cursor:pointer" ' +
+        'onclick="showStopDetail(searchResult._strategies.flatMap(function(st){return st.stops||[]}).find(function(x){return x.id===' + s.id + '}),' + i + ')">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:' + scoreColor(s.score) + '"></div>' +
+          '<span style="font-size:14px;font-weight:500">' + s.name.split(' - ')[0].split(',')[0] + '</span>' +
+        '</div>' +
+        '<span style="font-size:13px;color:#888780">' + scoreWord(s.score) + ' \u00B7 ' + s.score + '</span>' +
+      '</div>';
     });
     html += '</div>';
   }
 
-  html += '<button class="maps-btn" onclick="openInMaps()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Open in Google Maps</button>';
+  // Maps button
+  html += '<button class="maps-btn" onclick="openInMaps()">' +
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D9E75" stroke-width="2">' +
+      '<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>' +
+    '</svg> Open in Google Maps</button>';
 
   document.getElementById('detail-body').innerHTML = html;
   showScreen('screen-detail');
 }
 
-function backToRoutes() { showScreen('screen-routes'); }
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION ACTIONS
+   ══════════════════════════════════════════════════════════════ */
+
+function backToRoutes() {
+  showScreen('screen-routes');
+}
+
 function resetToInput() {
-  formData.origin = ''; formData.destination = '';
+  formData.origin = '';
+  formData.destination = '';
   document.getElementById('inp-from').value = '';
   document.getElementById('inp-to').value = '';
-  searchResult = null; decodedPolyline = null; currentStops = [];
+  searchResult = null;
+  decodedPolyline = null;
+  currentStops = [];
   showScreen('screen-input');
   showStep(1);
 }
 
-// ── Google Places Autocomplete ───────────────────────────────────────
-async function loadMapsAPI() {
-  try {
-    var res = await fetch('/.netlify/functions/get-config');
-    var config = await res.json();
-    if (!config.googleApiKey) return;
-    var script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key='+config.googleApiKey+'&libraries=places&callback=initAutocomplete';
-    script.async = true; script.defer = true;
-    document.body.appendChild(script);
-  } catch(e) {}
+function openInMaps() {
+  var parts = [formData.origin];
+  currentStops.forEach(function (c) { parts.push(c.address); });
+  parts.push(formData.destination);
+  window.open('https://www.google.com/maps/dir/' + parts.map(encodeURIComponent).join('/'), '_blank');
 }
 
-function initAutocomplete() {
-  var opts = { types:['geocode','establishment'] };
-  var fromInput = document.getElementById('inp-from');
-  var toInput = document.getElementById('inp-to');
-  var acFrom = new google.maps.places.Autocomplete(fromInput, opts);
-  var acTo = new google.maps.places.Autocomplete(toInput, opts);
-  acFrom.addListener('place_changed', function(){
-    var p = acFrom.getPlace();
-    if (p && p.formatted_address) { formData.origin = p.formatted_address; fromInput.value = p.formatted_address; }
-    else { formData.origin = fromInput.value.trim(); }
-    updateCTAState();
-  });
-  acTo.addListener('place_changed', function(){
-    var p = acTo.getPlace();
-    if (p && p.formatted_address) { formData.destination = p.formatted_address; toInput.value = p.formatted_address; }
-    else { formData.destination = toInput.value.trim(); }
-    updateCTAState();
-  });
-  fromInput.addEventListener('keydown', function(e){ if(e.key==='Enter') e.preventDefault(); });
-  toInput.addEventListener('keydown', function(e){ if(e.key==='Enter') e.preventDefault(); });
-}
-
-// ── Round trip reveal ─────────────────────────────────────────────────
 function showRoundTrip() {
   document.getElementById('roundtrip-detail').style.display = '';
 }
 
-// ── Shareable URLs ───────────────────────────────────────────────────
+/* ══════════════════════════════════════════════════════════════
+   SHAREABLE URLs
+   ══════════════════════════════════════════════════════════════ */
+
 function buildShareURL() {
   var params = new URLSearchParams();
-  if (formData.origin) params.set('from', formData.origin);
+  if (formData.origin)      params.set('from', formData.origin);
   if (formData.destination) params.set('to', formData.destination);
-  if (formData.vehicle) params.set('v', formData.vehicle);
-  if (formData.party) params.set('w', formData.party);
+  if (formData.vehicle)     params.set('v', formData.vehicle);
+  if (formData.party)       params.set('w', formData.party);
   return window.location.origin + window.location.pathname + '?' + params.toString();
 }
 
 function updateShareURL() {
-  // Update browser URL without reload
-  var url = buildShareURL();
-  history.replaceState(null, '', url);
+  history.replaceState(null, '', buildShareURL());
 }
 
 function shareTrip() {
-  var url = buildShareURL();
-  var title = formData.origin.split(',')[0] + ' → ' + formData.destination.split(',')[0] + ' — ChargeWell';
+  var url   = buildShareURL();
+  var title = formData.origin.split(',')[0] + ' \u2192 ' + formData.destination.split(',')[0] + ' \u2014 ChargeWell';
 
   if (navigator.share) {
-    navigator.share({ title: title, url: url }).catch(function(){});
+    navigator.share({ title: title, url: url }).catch(function () {});
   } else {
-    navigator.clipboard.writeText(url).then(function() {
+    navigator.clipboard.writeText(url).then(function () {
       var label = document.getElementById('share-btn-label');
       label.textContent = 'Link copied!';
-      setTimeout(function(){ label.textContent = 'Share this trip'; }, 2000);
-    }).catch(function(){});
+      setTimeout(function () { label.textContent = 'Share this trip'; }, 2000);
+    }).catch(function () {});
   }
 }
 
-// ── Load from URL parameters on startup ──────────────────────────────
+/* ══════════════════════════════════════════════════════════════
+   GOOGLE PLACES AUTOCOMPLETE
+   ══════════════════════════════════════════════════════════════ */
+
+async function loadMapsAPI() {
+  try {
+    var res    = await fetch('/.netlify/functions/get-config');
+    var config = await res.json();
+    if (!config.googleApiKey) return;
+    var script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + config.googleApiKey + '&libraries=places&callback=initAutocomplete';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+  } catch (e) {}
+}
+
+function initAutocomplete() {
+  var opts     = { types: ['geocode', 'establishment'] };
+  var fromInp  = document.getElementById('inp-from');
+  var toInp    = document.getElementById('inp-to');
+  var acFrom   = new google.maps.places.Autocomplete(fromInp, opts);
+  var acTo     = new google.maps.places.Autocomplete(toInp, opts);
+
+  acFrom.addListener('place_changed', function () {
+    var p = acFrom.getPlace();
+    if (p && p.formatted_address) { formData.origin = p.formatted_address; fromInp.value = p.formatted_address; }
+    else { formData.origin = fromInp.value.trim(); }
+    updateCTAState();
+  });
+
+  acTo.addListener('place_changed', function () {
+    var p = acTo.getPlace();
+    if (p && p.formatted_address) { formData.destination = p.formatted_address; toInp.value = p.formatted_address; }
+    else { formData.destination = toInp.value.trim(); }
+    updateCTAState();
+  });
+
+  // Prevent form submission on Enter in autocomplete fields
+  fromInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+  toInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') e.preventDefault(); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STARTUP
+   ══════════════════════════════════════════════════════════════ */
+
+// Build vehicle pills
+(function () {
+  var html = VEHICLES.map(function (v) {
+    return '<div class="pill' + (v.id === formData.vehicle ? ' selected' : '') +
+      '" onclick="pickVehicle(\'' + v.id + '\',this)">' + v.label + '</div>';
+  }).join('');
+  document.getElementById('vehicle-pills').innerHTML = html;
+})();
+
+// Check URL params for shared links — auto-run search if present
 function checkURLParams() {
   var params = new URLSearchParams(window.location.search);
   var from = params.get('from');
-  var to = params.get('to');
-  var v = params.get('v');
-  var w = params.get('w');
+  var to   = params.get('to');
+  var v    = params.get('v');
+  var w    = params.get('w');
 
   if (from && to) {
-    formData.origin = from;
+    formData.origin      = from;
     formData.destination = to;
     document.getElementById('inp-from').value = from;
-    document.getElementById('inp-to').value = to;
+    document.getElementById('inp-to').value   = to;
 
     if (v) {
       formData.vehicle = v;
-      document.querySelectorAll('.pill').forEach(function(p){
-        p.classList.toggle('selected', p.textContent === VEHICLES.find(function(veh){ return veh.id === v; })?.label);
+      document.querySelectorAll('.pill').forEach(function (p) {
+        p.classList.toggle('selected', p.textContent === VEHICLES.find(function (veh) { return veh.id === v; })?.label);
       });
     }
     if (w) {
       formData.party = w;
-      document.querySelectorAll('.party-btn').forEach(function(b){
+      document.querySelectorAll('.party-btn').forEach(function (b) {
         b.classList.toggle('selected', b.querySelector('span').textContent === w);
       });
     }
 
-    // Auto-run the search
     runSearch();
     return true;
   }
@@ -897,5 +1300,6 @@ if (!checkURLParams()) {
   showStep(1);
 }
 </script>
+
 </body>
 </html>

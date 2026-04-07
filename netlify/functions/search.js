@@ -1,8 +1,18 @@
-const GOOGLE_API_KEY    = process.env.GOOGLE_API_KEY;
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const NREL_API_KEY      = process.env.NREL_API_KEY || "DEMO_KEY";
+const NREL_API_KEY = process.env.NREL_API_KEY || "DEMO_KEY";
 
-// Realistic highway range at 75mph (miles)
+const MAX_CHARGE_RATE_KW = 140;
+
+const HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json",
+};
+
+// ── Vehicle data ───────────────────────────────────────────────────────
+
+// Realistic highway range at 75 mph (miles)
 const VEHICLE_RANGE_MI = {
   tesla_model_y_lr: 240, tesla_model_y_sr: 200, tesla_model_3_lr: 260, tesla_model_3_sr: 210,
   tesla_cybertruck: 230, rivian_r1t: 220, rivian_r1s: 225, ford_mach_e: 210,
@@ -12,7 +22,7 @@ const VEHICLE_RANGE_MI = {
   lucid_air: 375, cadillac_lyriq: 240, polestar_2: 210, nissan_ariya: 230,
 };
 
-// Usable battery capacity in kWh (approximate, for charging time calc)
+// Usable battery capacity in kWh
 const VEHICLE_BATTERY_KWH = {
   tesla_model_y_lr: 75, tesla_model_y_sr: 60, tesla_model_3_lr: 75, tesla_model_3_sr: 60,
   tesla_cybertruck: 123, rivian_r1t: 135, rivian_r1s: 135, ford_mach_e: 91,
@@ -22,279 +32,103 @@ const VEHICLE_BATTERY_KWH = {
   lucid_air: 112, cadillac_lyriq: 102, polestar_2: 78, nissan_ariya: 87,
 };
 
-const MAX_CHARGE_RATE_KW = 140;
-
-const HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Content-Type": "application/json"
+const VEHICLE_NAMES = {
+  tesla_model_y_lr: "Tesla Model Y Long Range", tesla_model_y_sr: "Tesla Model Y",
+  tesla_model_3_lr: "Tesla Model 3 Long Range", tesla_model_3_sr: "Tesla Model 3",
+  tesla_cybertruck: "Cybertruck", rivian_r1t: "R1T", rivian_r1s: "R1S",
+  ford_mach_e: "Mach-E", ford_f150_lightning: "F-150 Lightning",
+  chevy_equinox_ev: "Equinox EV", chevy_blazer_ev: "Blazer EV",
+  hyundai_ioniq_5: "Ioniq 5", hyundai_ioniq_6: "Ioniq 6", kia_ev6: "EV6", kia_ev9: "EV9",
+  bmw_ix: "iX", mercedes_eqs: "EQS", vw_id4: "ID.4", porsche_taycan: "Taycan",
+  lucid_air: "Lucid Air", cadillac_lyriq: "Lyriq", polestar_2: "Polestar 2", nissan_ariya: "Ariya",
 };
 
-exports.handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: HEADERS, body: "" };
+function vehicleName(key) {
+  return VEHICLE_NAMES[key] || "EV";
+}
 
-  const { origin, destination, travellerType, vehicle } = JSON.parse(event.body || "{}");
-  if (!origin || !destination) {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: "origin and destination required" }) };
-  }
+// ── Geo utilities ──────────────────────────────────────────────────────
 
-  // ── Step 0: Resolve vague locations via Geocoding ─────────────────────
-  let resolvedOrigin = origin;
-  let resolvedDest = destination;
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+// Resolve vague locations into routable addresses via Places Find Place API
+async function resolveLocation(input) {
+  if (!input) throw new Error("Empty location");
+  if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(input.trim())) return input.trim();
+
   try {
-    const [ro, rd] = await Promise.all([
-      resolveLocation(origin),
-      resolveLocation(destination)
-    ]);
-    resolvedOrigin = ro;
-    resolvedDest = rd;
-  } catch (e) {
-    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: `Could not resolve locations: ${e.message}` }) };
-  }
-
-  // ── Step 1: Get route from Google Directions ──────────────────────────
-  let routePoints = [];
-  let totalDistanceMeters = 0;
-  let totalDurationSeconds = 0;
-  let routeLegs, routePolyline;
-  try {
-    const dirUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(resolvedOrigin)}&destination=${encodeURIComponent(resolvedDest)}&key=${GOOGLE_API_KEY}`;
-    const dirRes = await fetch(dirUrl);
-    const dirJson = await dirRes.json();
-    if (!dirJson.routes?.length) {
-      throw new Error(`${dirJson.status || "UNKNOWN"}: ${dirJson.error_message || "No routes returned. Try a more specific address."}`);
+    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(input)}&inputtype=textquery&fields=formatted_address,geometry&key=${GOOGLE_API_KEY}`;
+    const res = await fetch(url);
+    const json = await res.json();
+    if (json.candidates?.length > 0) {
+      const c = json.candidates[0];
+      if (c.formatted_address) return c.formatted_address;
+      if (c.geometry?.location) return `${c.geometry.location.lat},${c.geometry.location.lng}`;
     }
-    const route = dirJson.routes[0];
-    routeLegs = route.legs;
-    routePolyline = route.overview_polyline?.points || "";
-    totalDistanceMeters = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
-    totalDurationSeconds = route.legs.reduce((sum, leg) => sum + leg.duration.value, 0);
-        // Many sample points for accurate distance matching (these are just used for mapping, not API calls)
-    const sampleInterval = Math.max(10000, Math.round(totalDistanceMeters / 30));
-    routePoints = sampleRoutePoints(route, sampleInterval);
-  } catch (e) {
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
-  }
+  } catch (_) { /* fall through */ }
 
-  const rangeMi = VEHICLE_RANGE_MI[vehicle] || 210;
-  const batteryKwh = VEHICLE_BATTERY_KWH[vehicle] || 75;
-  const totalDistanceMi = totalDistanceMeters / 1609.344;
-  const totalMi = Math.round(totalDistanceMi);
-  const totalDriveMinutes = Math.round(totalDurationSeconds / 60);
-  const arrivalPct = Math.round((1 - totalDistanceMi / rangeMi) * 100);
+  return input;
+}
 
-  // ── Cap at 1000 miles for now ─────────────────────────────────────────
-  if (totalMi > 1000) {
-    return {
-      statusCode: 200, headers: HEADERS,
-      body: JSON.stringify({
-        tooFar: true,
-        totalDistanceMi: totalMi,
-        totalDriveMinutes,
-        polyline: routePolyline,
-        message: `That's a ${totalMi}-mile trip — we're not quite ready for that yet. ChargeWell works best for trips under 1,000 miles. We're working on cross-country support.`
-      })
-    };
-  }
+// ── Route sampling ─────────────────────────────────────────────────────
 
-  // ── Check if trip is within range (arrive with 20%+ battery) ──────────
-  if (arrivalPct >= 20) {
-    const mi = Math.round(totalDistanceMi);
-    const messages = [
-      `Your ${vehicleName(vehicle)} eats ${mi} miles for breakfast. You'll arrive with about ${arrivalPct}% battery — skip the stop and enjoy the drive.`,
-      `${mi} miles? That's a warm-up for your ${vehicleName(vehicle)}. You'll roll in with ~${arrivalPct}% battery. Save the charging for another day.`,
-      `Good news — your ${vehicleName(vehicle)} can do this ${mi}-mile trip on a single charge. You'll arrive with roughly ${arrivalPct}% left. More time for snacks at the destination.`,
-      `No pit stop required! At ${mi} miles, your ${vehicleName(vehicle)} will arrive with about ${arrivalPct}% battery to spare. That's what we call range confidence.`,
-    ];
-
-    // Check if a round trip would need charging
-    const roundTripMi = mi * 2;
-    const roundTripArrival = Math.round((1 - roundTripMi / rangeMi) * 100);
-    let roundTripStop = null;
-
-    if (roundTripArrival < 15) {
-      // Need a charge for the return — find chargers near the destination (last third of route)
-      const destPoints = routePoints.slice(Math.max(0, routePoints.length - 3));
-      if (destPoints.length === 0 && routeLegs.length) {
-        const lastLeg = routeLegs[routeLegs.length - 1];
-        destPoints.push({ lat: lastLeg.end_location.lat, lng: lastLeg.end_location.lng });
-      }
-      try {
-        const nearDestPromises = destPoints.map(pt =>
-          fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=25&limit=3`)
-            .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
-        );
-        const nearResults = await Promise.all(nearDestPromises);
-        const seen = new Set();
-        const nearChargers = [];
-        nearResults.flat().forEach(s => {
-          if (!s.id || seen.has(s.id) || !s.latitude || !s.longitude) return;
-          seen.add(s.id);
-          nearChargers.push({
-            id: s.id,
-            name: s.station_name || `Charger ${s.id}`,
-            address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
-            lat: s.latitude, lng: s.longitude,
-            network: s.ev_network || "Unknown",
-            kw: Math.min(s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50, 350),
-          });
-        });
-
-        if (nearChargers.length) {
-          // Pick the first one (closest to destination area)
-          const charger = nearChargers[0];
-          // Calculate how much charge is needed: after round trip you want 15%
-          const batteryAfterReturn = 1 - roundTripMi / rangeMi;
-          const chargeNeeded = Math.max(0, 0.15 - batteryAfterReturn); // get to at least 15%
-          const kwhNeeded = chargeNeeded * batteryKwh;
-          const effectiveKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw);
-          const chargeMinutes = Math.max(8, Math.round((kwhNeeded / effectiveKw) * 60));
-          const homeArrivalPct = Math.round((batteryAfterReturn + chargeNeeded) * 100);
-
-          roundTripStop = {
-            ...charger,
-            chargeMinutes,
-            homeArrivalPct,
-            message: `Grab ${chargeMinutes} minutes at ${charger.name.split(' - ')[0].split(',')[0]} on your way back — you'll get home with about ${homeArrivalPct}% battery.`
-          };
-        }
-      } catch (e) { /* no round trip suggestion */ }
+// Walk through route steps and emit interpolated points at even distance intervals
+function sampleRoutePoints(route, intervalMeters) {
+  const allSteps = [];
+  let totalDist = 0, totalTime = 0;
+  for (const leg of route.legs) {
+    for (const step of leg.steps) {
+      totalDist += step.distance.value;
+      totalTime += step.duration.value;
+      allSteps.push({
+        lat: step.end_location.lat,
+        lng: step.end_location.lng,
+        routeDistMeters: totalDist,
+        routeTimeSec: totalTime,
+      });
     }
-
-    return {
-      statusCode: 200, headers: HEADERS,
-      body: JSON.stringify({
-        noStopNeeded: true,
-        noStopMessage: messages[Math.floor(Math.random() * messages.length)],
-        totalDistanceMi: mi, arrivalPct, polyline: routePolyline, totalDriveMinutes,
-        roundTripNeedsCharge: roundTripArrival < 15,
-        roundTripStop
-      })
-    };
   }
+  if (!allSteps.length) return [];
 
-  // ── Step 2: Find DC fast chargers via NREL AFDC ────────────────────────
-  let chargers = [];
-  let _nrelDebug = {};
-  try {
-    // Pick ~6 evenly-spaced sample points for NREL queries (fits in 10s timeout)
-    const queryPoints = [];
-    const numQueries = Math.min(6, routePoints.length);
-    for (let i = 0; i < numQueries; i++) {
-      const idx = Math.round(i * (routePoints.length - 1) / (numQueries - 1));
-      queryPoints.push(routePoints[idx]);
+  const points = [];
+  let nextThreshold = intervalMeters;
+
+  for (let i = 0; i < allSteps.length; i++) {
+    while (allSteps[i].routeDistMeters >= nextThreshold) {
+      const prevDist = i > 0 ? allSteps[i - 1].routeDistMeters : 0;
+      const stepDist = allSteps[i].routeDistMeters - prevDist;
+      const fraction = stepDist > 0 ? (nextThreshold - prevDist) / stepDist : 1;
+
+      const prevLat = i > 0 ? allSteps[i - 1].lat : allSteps[i].lat;
+      const prevLng = i > 0 ? allSteps[i - 1].lng : allSteps[i].lng;
+      const prevTime = i > 0 ? allSteps[i - 1].routeTimeSec : 0;
+      const stepTime = allSteps[i].routeTimeSec - prevTime;
+
+      points.push({
+        lat: prevLat + (allSteps[i].lat - prevLat) * fraction,
+        lng: prevLng + (allSteps[i].lng - prevLng) * fraction,
+        routeDistMeters: nextThreshold,
+        routeTimeSec: Math.round(prevTime + stepTime * fraction),
+      });
+      nextThreshold += intervalMeters;
     }
-
-    const results = await Promise.all(queryPoints.map(pt =>
-      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=20&limit=5`)
-        .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
-    ));
-    const seen = new Set();
-
-    // Process per-sample-point so we can use the point's known route distance/time
-    // Deduplicate and assign route distance by finding closest sample point
-    const chargerMap = {};
-    const allStations = results.flat();
-    allStations.forEach(s => {
-      if (!s.id || !s.latitude || !s.longitude) return;
-      if (chargerMap[s.id]) return; // already seen
-
-      // Find the closest route sample point to estimate route distance
-      let bestDist = Infinity, bestPt = routePoints[0];
-      for (const pt of routePoints) {
-        const d = Math.pow(s.latitude - pt.lat, 2) + Math.pow(s.longitude - pt.lng, 2);
-        if (d < bestDist) { bestDist = d; bestPt = pt; }
-      }
-      const ptRouteMi = Math.round(bestPt.routeDistMeters / 1609.344);
-      const ptRouteMin = Math.round(bestPt.routeTimeSec / 60);
-
-      // Only keep chargers within ~15 miles of the route
-      const distFromRouteMi = Math.sqrt(bestDist) * 69; // rough degrees→miles
-      if (distFromRouteMi > 25) return;
-
-      const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
-      chargerMap[s.id] = {
-        id: s.id, name: s.station_name || `Charger ${s.id}`,
-        address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
-        lat: s.latitude, lng: s.longitude,
-        network: s.ev_network || "Unknown network",
-        kw: Math.min(maxKw, 350),
-        distanceFromOriginMi: ptRouteMi,
-        driveMinutesFromOrigin: ptRouteMin
-      };
-    });
-    chargers = Object.values(chargerMap);
-    _nrelDebug = { queryPts: queryPoints.length, rawFromNrel: results.flat().length, unique: chargers.length, miles: [...new Set(chargers.map(c=>c.distanceFromOriginMi))].sort((a,b)=>a-b) };
-
-    chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
-
-    // Filter out very early stops
-    const minDriveMinutes = Math.min(45, totalDriveMinutes * 0.2);
-    chargers = chargers.filter(c => c.driveMinutesFromOrigin >= minDriveMinutes);
-
-    // Keep chargers spread across the route — pick the best from each segment
-    const maxChargers = Math.max(10, Math.ceil(totalMi / 100));
-    if (chargers.length > maxChargers) {
-      // Divide route into segments and pick the highest-kW charger from each
-      const segmentMi = totalMi / maxChargers;
-      const kept = [];
-      for (let seg = 0; seg < maxChargers; seg++) {
-        const segStart = seg * segmentMi;
-        const segEnd = (seg + 1) * segmentMi;
-        const inSegment = chargers.filter(c => c.distanceFromOriginMi >= segStart && c.distanceFromOriginMi < segEnd);
-        if (inSegment.length > 0) {
-          // Pick highest power charger in this segment
-          inSegment.sort((a, b) => b.kw - a.kw);
-          kept.push(inSegment[0]);
-        }
-      }
-      chargers = kept;
-    }
-  } catch (e) {
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Charger search failed: ${e.message}` }) };
   }
 
-  if (!chargers.length) {
-    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], strategies: [], totalDistanceMi: totalMi, polyline: routePolyline, totalDriveMinutes }) };
-  }
+  return points;
+}
 
-  // Charging times are calculated per-strategy below (depends on stop sequence)
+// ── Charging time estimation ───────────────────────────────────────────
 
-  // ── Step 3: Detect thin coverage zones ────────────────────────────────
-  const thinCoverageInfo = detectThinCoverage(chargers, totalMi);
-
-  // ── Step 4: Grade chargers + generate strategies in parallel ──────────
-  const [graded, strategies] = await Promise.all([
-    Promise.all(chargers.map(c => gradeCharger(c, travellerType, vehicle, thinCoverageInfo))),
-    generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle)
-  ]);
-
-  const gradedById = {};
-  graded.forEach(c => { gradedById[String(c.id)] = c; });
-
-  // Build strategies with full stop data and timing
-  const strategiesWithGrades = strategies.map(s => {
-    const stops = (s.stopIds || []).map(id => gradedById[String(id)]).filter(Boolean);
-    stops.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
-    const timing = calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, batteryKwh);
-    return { ...s, stops, ...timing };
-  });
-
-  return {
-    statusCode: 200, headers: HEADERS,
-    body: JSON.stringify({
-      chargers: graded,
-      strategies: strategiesWithGrades,
-      totalDistanceMi: totalMi,
-      totalDriveMinutes,
-      polyline: routePolyline,
-    })
-  };
-};
-
-// ── Charging time estimate ──────────────────────────────────────────────
 // Simulates DC fast charging with realistic taper curve + 5 min overhead.
-// prevStopMi = where we last charged (0 = origin), nextStopMi = where we need to reach
+// Returns minutes; 15 min floor for any real-world stop.
 function estimateChargingMinutes(charger, rangeMi, batteryKwh, totalDistanceMi, prevStopMi, nextStopMi) {
   const milesSinceCharge = charger.distanceFromOriginMi - (prevStopMi || 0);
   const socAtArrival = Math.max(0.05, 1 - milesSinceCharge / rangeMi);
@@ -303,25 +137,23 @@ function estimateChargingMinutes(charger, rangeMi, batteryKwh, totalDistanceMi, 
   const socNeeded = (milesToNext / rangeMi) + 0.10;
   const targetSoc = Math.min(0.90, Math.max(socAtArrival, socNeeded));
 
-  if (targetSoc <= socAtArrival) return 15; // minimum real-world stop
+  if (targetSoc <= socAtArrival) return 15;
 
-  // Simulate charging in 5% SoC increments with taper
-  // Typical DC fast charge curve: full power up to ~50%, then taper
   const peakKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw || 150);
   let totalMinutes = 0;
   let soc = socAtArrival;
-  const step = 0.05; // 5% increments
+  const step = 0.05;
 
   while (soc < targetSoc) {
     const nextSoc = Math.min(targetSoc, soc + step);
     const midSoc = (soc + nextSoc) / 2;
 
-    // Taper: 100% of peak below 20%, then linear drop to 25% of peak at 100% SoC
+    // Taper curve: full power to 20%, then linear decline to 25% at 100%
     let rateMultiplier;
     if (midSoc <= 0.20) rateMultiplier = 1.0;
-    else if (midSoc <= 0.50) rateMultiplier = 1.0 - 0.15 * ((midSoc - 0.20) / 0.30); // 1.0 → 0.85
-    else if (midSoc <= 0.80) rateMultiplier = 0.85 - 0.40 * ((midSoc - 0.50) / 0.30); // 0.85 → 0.45
-    else rateMultiplier = 0.45 - 0.20 * ((midSoc - 0.80) / 0.20); // 0.45 → 0.25
+    else if (midSoc <= 0.50) rateMultiplier = 1.0 - 0.15 * ((midSoc - 0.20) / 0.30);
+    else if (midSoc <= 0.80) rateMultiplier = 0.85 - 0.40 * ((midSoc - 0.50) / 0.30);
+    else rateMultiplier = 0.45 - 0.20 * ((midSoc - 0.80) / 0.20);
 
     const effectiveKw = peakKw * Math.max(0.20, rateMultiplier);
     const kwhForStep = (nextSoc - soc) * batteryKwh;
@@ -329,11 +161,11 @@ function estimateChargingMinutes(charger, rangeMi, batteryKwh, totalDistanceMi, 
     soc = nextSoc;
   }
 
-  // Add 5 min overhead (plug in, start session, unplug)
   return Math.max(15, Math.round(totalMinutes + 5));
 }
 
-// ── Strategy timing calculation ─────────────────────────────────────────
+// ── Strategy timing ────────────────────────────────────────────────────
+
 function calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, batteryKwh) {
   if (!stops.length) return { totalTripMinutes: totalDriveMinutes, totalChargingMinutes: 0, legs: [] };
 
@@ -348,36 +180,35 @@ function calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, bat
 
     const legDriveMin = stop.driveMinutesFromOrigin - prevMinutes;
     legs.push({
-      type: "drive", label: i === 0 ? "Drive to first stop" : "Drive to next stop",
+      type: "drive",
+      label: i === 0 ? "Drive to first stop" : "Drive to next stop",
       minutes: Math.max(1, legDriveMin),
-      miles: stop.distanceFromOriginMi - prevMi
+      miles: stop.distanceFromOriginMi - prevMi,
     });
     legs.push({
-      type: "charge", label: `Charge at ${stop.name.split(" - ")[0].split(",")[0]}`,
-      minutes: chargeMin
+      type: "charge",
+      label: `Charge at ${stop.name.split(" - ")[0].split(",")[0]}`,
+      minutes: chargeMin,
     });
     prevMi = stop.distanceFromOriginMi;
     prevMinutes = stop.driveMinutesFromOrigin;
   });
 
-  // Final leg to destination
   const finalDriveMin = totalDriveMinutes - prevMinutes;
   legs.push({
-    type: "drive", label: "Drive to destination",
+    type: "drive",
+    label: "Drive to destination",
     minutes: Math.max(1, finalDriveMin),
-    miles: totalMi - prevMi
+    miles: totalMi - prevMi,
   });
 
   const totalChargingMinutes = legs.filter(l => l.type === "charge").reduce((s, l) => s + l.minutes, 0);
-  return {
-    totalTripMinutes: totalDriveMinutes + totalChargingMinutes,
-    totalChargingMinutes,
-    legs
-  };
+  return { totalTripMinutes: totalDriveMinutes + totalChargingMinutes, totalChargingMinutes, legs };
 }
 
+// ── Thin coverage detection ────────────────────────────────────────────
 
-// ── Thin coverage detection ─────────────────────────────────────────────
+// Finds gaps > 60 mi between consecutive chargers (or after the last one)
 function detectThinCoverage(chargers, totalMi) {
   const gaps = [];
   for (let i = 0; i < chargers.length - 1; i++) {
@@ -391,129 +222,22 @@ function detectThinCoverage(chargers, totalMi) {
   return { gaps, lastReliableIds: new Set(gaps.map(g => g.afterChargerId)) };
 }
 
-// ── Strategy generation via Claude Haiku ─────────────────────────────────
-async function generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle) {
-  const chargerSummary = chargers.map(c =>
-    `id:${c.id} "${c.name}" at mile ${c.distanceFromOriginMi} (${c.driveMinutesFromOrigin}min drive), ${c.network}, ${c.kw}kW`
-  ).join("\n");
+// ── NREL charger formatting ────────────────────────────────────────────
 
-  // Pre-validate: which chargers can be standalone (single-stop) options?
-  // A single stop works if: origin→stop < rangeMi AND stop→destination < rangeMi (charging to ~85%)
-  const maxLegAfterCharge = rangeMi * 0.85; // after charging to 85%
-  const singleStopIds = chargers.filter(c =>
-    c.distanceFromOriginMi < rangeMi * 0.95 && (totalMi - c.distanceFromOriginMi) < maxLegAfterCharge
-  ).map(c => c.id);
-
-  const prompt = `Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min drive)
-Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi range). Max ${rangeMi} mi first leg, ${Math.round(rangeMi * 0.85)} mi after charging.
-${singleStopIds.length > 0 ? 'Single-stop feasible IDs: ' + singleStopIds.join(', ') : 'Needs 2+ stops.'}
-
-Chargers:
-${chargerSummary}
-
-Propose 2-3 route options that feel GENUINELY DIFFERENT to drive. Vary the trip shape, not just the charger brand:
-- One option with fewer stops but longer charges (skip early chargers, charge more at one good stop later)
-- One option with more stops but shorter charges (break up the drive, quick top-ups)
-- ${singleStopIds.length > 0 ? 'If feasible: one option with a single stop where you charge longer and push through' : 'One option that prioritizes the best stop experience'}
-
-Each must be feasible (every leg under the range limit above).
-
-Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
-[{"name":"The Long Lunch","tagline":"One stop in Providence, charge while you eat","emoji":"🍽️","recommended":true,"stopIds":[238588]}]`;
-
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, messages: [{ role: "user", content: prompt }] })
-    });
-    const json = await res.json();
-    const text = json.content?.[0]?.text || "[]";
-    // Store for debug
-    const match = text.match(/\[[\s\S]*\]/);
-    if (match) {
-      const strategies = JSON.parse(match[0]);
-      // Use string keys to avoid number/string mismatch between NREL IDs and Haiku output
-      const validIds = new Set(chargers.map(c => String(c.id)));
-      const chargerById = {};
-      chargers.forEach(c => { chargerById[String(c.id)] = c; });
-
-      // Normalize: Haiku sometimes returns "stops" instead of "stopIds"
-      strategies.forEach(s => {
-        if (!s.stopIds && Array.isArray(s.stops)) {
-          // "stops" might be an array of IDs or objects with id fields
-          s.stopIds = s.stops.map(st => typeof st === 'object' ? (st.id || st.stopId) : st).filter(Boolean);
-        }
-      });
-
-      // Validate feasibility of each strategy
-      const validated = strategies.filter(s => {
-        if (!Array.isArray(s.stopIds) || !s.stopIds.length) {
-          console.log('Strategy rejected (no stopIds):', s.name);
-          return false;
-        }
-        if (!s.stopIds.every(id => validIds.has(String(id)))) {
-          console.log('Strategy rejected (invalid IDs):', s.name, 'ids:', s.stopIds, 'valid:', [...validIds]);
-          return false;
-        }
-        const stops = s.stopIds.map(id => chargerById[String(id)]).filter(Boolean).sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
-        let prevMi = 0;
-        let maxLeg = rangeMi;
-        for (const stop of stops) {
-          if (stop.distanceFromOriginMi - prevMi > maxLeg) {
-            console.log('Strategy rejected (leg too long):', s.name, 'leg:', prevMi, '→', stop.distanceFromOriginMi, 'max:', maxLeg);
-            return false;
-          }
-          // Reject stops that are less than 30 miles apart — no point stopping twice in the same area
-          if (prevMi > 0 && stop.distanceFromOriginMi - prevMi < 30) {
-            console.log('Strategy rejected (stops too close):', s.name, prevMi, '→', stop.distanceFromOriginMi);
-            return false;
-          }
-          prevMi = stop.distanceFromOriginMi;
-          maxLeg = rangeMi * 0.85;
-        }
-        if (totalMi - prevMi > maxLeg) {
-          console.log('Strategy rejected (final leg):', s.name, 'leg:', prevMi, '→', totalMi, 'max:', maxLeg);
-          return false;
-        }
-        return true;
-      });
-      console.log('Strategies from Haiku:', strategies.length, 'validated:', validated.length);
-      if (validated.length > 0) return validated;
-      // If all failed validation, return them anyway with a warning — the feasibility
-      // check may be too strict and it's better to show options than none
-      console.log('All strategies failed validation — returning best effort');
-      const bestEffort = strategies.filter(s => Array.isArray(s.stopIds) && s.stopIds.length > 0 && s.stopIds.every(id => validIds.has(id)));
-      if (bestEffort.length > 0) return bestEffort;
-    }
-  } catch (e) {
-    console.log('Strategy generation error:', e.message, e.stack);
-  }
-
-  // Fallback: greedily build a feasible route
-  // Pick the last charger before we'd run out of range at each step
-  const fallbackStops = [];
-  let prevMi = 0;
-  let currentRange = rangeMi; // start at 100%
-
-  while (prevMi + currentRange < totalMi) {
-    // Find all chargers we can reach from prevMi
-    const reachable = chargers.filter(c =>
-      c.distanceFromOriginMi > prevMi + 30 && // at least 30mi from last stop
-      c.distanceFromOriginMi <= prevMi + currentRange * 0.9 // within 90% of range
-    );
-    if (!reachable.length) break; // no charger in range — can't build route
-    // Pick the one furthest along (maximize progress)
-    const best = reachable[reachable.length - 1];
-    fallbackStops.push(best.id);
-    prevMi = best.distanceFromOriginMi;
-    currentRange = rangeMi * 0.85; // after charging
-  }
-
-  if (!fallbackStops.length && chargers.length) fallbackStops.push(chargers[0].id);
-  return [{ name: "The Route", tagline: "Best available stops", emoji: "⚡", recommended: true, stopIds: fallbackStops }];
+function formatNrelStation(s) {
+  const maxKw = s.ev_dc_fast_num ? (s.ev_connector_types?.includes("TESLA") ? 250 : 150) : 50;
+  return {
+    id: s.id,
+    name: s.station_name || `Charger ${s.id}`,
+    address: [s.street_address, s.city, s.state, s.zip].filter(Boolean).join(", "),
+    lat: s.latitude,
+    lng: s.longitude,
+    network: s.ev_network || "Unknown",
+    kw: Math.min(maxKw, 350),
+  };
 }
 
+// ── Charger grading via Places + Claude Haiku ──────────────────────────
 
 async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {
   let places = [];
@@ -525,9 +249,9 @@ async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {
       name: p.name,
       types: (p.types || []).filter(t => !["point_of_interest", "establishment"].includes(t)).slice(0, 2),
       rating: p.rating || null,
-      meters: haversine(charger.lat, charger.lng, p.geometry.location.lat, p.geometry.location.lng)
+      meters: haversine(charger.lat, charger.lng, p.geometry.location.lat, p.geometry.location.lng),
     })).filter(p => p.meters <= 750);
-  } catch (e) { places = []; }
+  } catch (_) { places = []; }
 
   let grade = { score: 50, scoreWord: "Decent", food: null, coffee: null, outdoors: null, kids: null, caveat: null, foodTier: "chain" };
   try {
@@ -565,110 +289,368 @@ Scoring guide: 85-100 exceptional (local gems + outdoor space), 70-84 genuinely 
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 450, messages: [{ role: "user", content: prompt }] })
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 450, messages: [{ role: "user", content: prompt }] }),
     });
     const json = await res.json();
     const text = json.content?.[0]?.text || "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) grade = JSON.parse(jsonMatch[0]);
-  } catch (e) { /* use default */ }
+  } catch (_) { /* use default */ }
 
   return { ...charger, ...grade, lastReliable: thinCoverageInfo.lastReliableIds.has(charger.id) };
 }
 
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
+// ── Strategy generation via Claude Haiku ───────────────────────────────
 
-function vehicleName(key) {
-  const names = {
-    tesla_model_y_lr: "Tesla Model Y Long Range", tesla_model_y_sr: "Tesla Model Y",
-    tesla_model_3_lr: "Tesla Model 3 Long Range", tesla_model_3_sr: "Tesla Model 3",
-    tesla_cybertruck: "Cybertruck", rivian_r1t: "R1T", rivian_r1s: "R1S",
-    ford_mach_e: "Mach-E", ford_f150_lightning: "F-150 Lightning",
-    chevy_equinox_ev: "Equinox EV", chevy_blazer_ev: "Blazer EV",
-    hyundai_ioniq_5: "Ioniq 5", hyundai_ioniq_6: "Ioniq 6", kia_ev6: "EV6", kia_ev9: "EV9",
-    bmw_ix: "iX", mercedes_eqs: "EQS", vw_id4: "ID.4", porsche_taycan: "Taycan",
-    lucid_air: "Lucid Air", cadillac_lyriq: "Lyriq", polestar_2: "Polestar 2", nissan_ariya: "Ariya",
-  };
-  return names[key] || "EV";
-}
+async function generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle) {
+  const chargerSummary = chargers.map(c =>
+    `id:${c.id} "${c.name}" at mile ${c.distanceFromOriginMi} (${c.driveMinutesFromOrigin}min drive), ${c.network}, ${c.kw}kW`
+  ).join("\n");
 
-// Resolve locations that Directions can't route to directly.
-// Uses Places Find Place to turn vague regions into specific addresses.
-async function resolveLocation(input) {
-  if (!input) throw new Error("Empty location");
+  const maxLegAfterCharge = rangeMi * 0.85;
+  const singleStopIds = chargers.filter(c =>
+    c.distanceFromOriginMi < rangeMi * 0.95 && (totalMi - c.distanceFromOriginMi) < maxLegAfterCharge
+  ).map(c => c.id);
 
-  // Raw lat,lng — use directly (Directions handles these fine)
-  if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(input.trim())) return input.trim();
+  const prompt = `Route: ${origin} → ${destination} (${totalMi} miles, ${totalDriveMinutes} min drive)
+Vehicle: ${vehicleName(vehicle)} (${rangeMi} mi range). Max ${rangeMi} mi first leg, ${Math.round(rangeMi * 0.85)} mi after charging.
+${singleStopIds.length > 0 ? 'Single-stop feasible IDs: ' + singleStopIds.join(', ') : 'Needs 2+ stops.'}
 
-  // Try Places Find Place to get a specific routable location
+Chargers:
+${chargerSummary}
+
+Propose 2-3 route options that feel GENUINELY DIFFERENT to drive. Vary the trip shape, not just the charger brand:
+- One option with fewer stops but longer charges (skip early chargers, charge more at one good stop later)
+- One option with more stops but shorter charges (break up the drive, quick top-ups)
+- ${singleStopIds.length > 0 ? 'If feasible: one option with a single stop where you charge longer and push through' : 'One option that prioritizes the best stop experience'}
+
+Each must be feasible (every leg under the range limit above).
+
+Reply ONLY with JSON array. Use "stopIds" with numeric charger IDs:
+[{"name":"The Long Lunch","tagline":"One stop in Providence, charge while you eat","emoji":"🍽️","recommended":true,"stopIds":[238588]}]`;
+
   try {
-    const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(input)}&inputtype=textquery&fields=formatted_address,geometry&key=${GOOGLE_API_KEY}`;
-    const res = await fetch(url);
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: "claude-haiku-4-5-20251001", max_tokens: 600, messages: [{ role: "user", content: prompt }] }),
+    });
     const json = await res.json();
-    if (json.candidates && json.candidates.length > 0) {
-      const c = json.candidates[0];
-      // If we got a formatted address, use it — more specific than the input
-      if (c.formatted_address) return c.formatted_address;
-      // Otherwise use the lat/lng
-      if (c.geometry?.location) return `${c.geometry.location.lat},${c.geometry.location.lng}`;
-    }
-  } catch (e) { /* fall through to original input */ }
+    const text = json.content?.[0]?.text || "[]";
+    const match = text.match(/\[[\s\S]*\]/);
 
-  return input;
+    if (match) {
+      const strategies = JSON.parse(match[0]);
+      const validIds = new Set(chargers.map(c => String(c.id)));
+      const chargerById = {};
+      chargers.forEach(c => { chargerById[String(c.id)] = c; });
+
+      // Haiku sometimes returns "stops" instead of "stopIds"
+      strategies.forEach(s => {
+        if (!s.stopIds && Array.isArray(s.stops)) {
+          s.stopIds = s.stops.map(st => typeof st === 'object' ? (st.id || st.stopId) : st).filter(Boolean);
+        }
+      });
+
+      const validated = strategies.filter(s => {
+        if (!Array.isArray(s.stopIds) || !s.stopIds.length) return false;
+        if (!s.stopIds.every(id => validIds.has(String(id)))) return false;
+
+        const stops = s.stopIds.map(id => chargerById[String(id)]).filter(Boolean)
+          .sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
+        let prevMi = 0;
+        let maxLeg = rangeMi;
+        for (const stop of stops) {
+          if (stop.distanceFromOriginMi - prevMi > maxLeg) return false;
+          if (prevMi > 0 && stop.distanceFromOriginMi - prevMi < 30) return false;
+          prevMi = stop.distanceFromOriginMi;
+          maxLeg = rangeMi * 0.85;
+        }
+        if (totalMi - prevMi > maxLeg) return false;
+        return true;
+      });
+
+      if (validated.length > 0) return validated;
+
+      // Best-effort fallback: return strategies with valid IDs even if legs are infeasible
+      const bestEffort = strategies.filter(s =>
+        Array.isArray(s.stopIds) && s.stopIds.length > 0 && s.stopIds.every(id => validIds.has(String(id)))
+      );
+      if (bestEffort.length > 0) return bestEffort;
+    }
+  } catch (e) {
+    console.error('Strategy generation error:', e.message);
+  }
+
+  // Greedy fallback: pick the last reachable charger at each step
+  const fallbackStops = [];
+  let prevMi = 0;
+  let currentRange = rangeMi;
+
+  while (prevMi + currentRange < totalMi) {
+    const reachable = chargers.filter(c =>
+      c.distanceFromOriginMi > prevMi + 30 &&
+      c.distanceFromOriginMi <= prevMi + currentRange * 0.9
+    );
+    if (!reachable.length) break;
+    const best = reachable[reachable.length - 1];
+    fallbackStops.push(best.id);
+    prevMi = best.distanceFromOriginMi;
+    currentRange = rangeMi * 0.85;
+  }
+
+  if (!fallbackStops.length && chargers.length) fallbackStops.push(chargers[0].id);
+  return [{ name: "The Route", tagline: "Best available stops", emoji: "⚡", recommended: true, stopIds: fallbackStops }];
 }
 
-function sampleRoutePoints(route, intervalMeters) {
-  // First, collect all step endpoints with cumulative distance/time
-  const allSteps = [];
-  let totalDist = 0, totalTime = 0;
-  for (const leg of route.legs) {
-    for (const step of leg.steps) {
-      totalDist += step.distance.value;
-      totalTime += step.duration.value;
-      allSteps.push({
-        lat: step.end_location.lat,
-        lng: step.end_location.lng,
-        routeDistMeters: totalDist,
-        routeTimeSec: totalTime
-      });
-    }
+// ── Main handler ───────────────────────────────────────────────────────
+
+exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers: HEADERS, body: "" };
+
+  const { origin, destination, travellerType, vehicle } = JSON.parse(event.body || "{}");
+  if (!origin || !destination) {
+    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: "origin and destination required" }) };
   }
 
-  if (!allSteps.length) return [];
-
-  // Sample at the desired interval, but if a step spans multiple intervals,
-  // interpolate points along it rather than skipping
-  const points = [];
-  let nextThreshold = intervalMeters;
-
-  for (let i = 0; i < allSteps.length; i++) {
-    while (allSteps[i].routeDistMeters >= nextThreshold) {
-      // Find the fraction along this step where the threshold falls
-      const prevDist = i > 0 ? allSteps[i-1].routeDistMeters : 0;
-      const stepDist = allSteps[i].routeDistMeters - prevDist;
-      const fraction = stepDist > 0 ? (nextThreshold - prevDist) / stepDist : 1;
-
-      const prevLat = i > 0 ? allSteps[i-1].lat : allSteps[i].lat;
-      const prevLng = i > 0 ? allSteps[i-1].lng : allSteps[i].lng;
-      const prevTime = i > 0 ? allSteps[i-1].routeTimeSec : 0;
-      const stepTime = allSteps[i].routeTimeSec - prevTime;
-
-      points.push({
-        lat: prevLat + (allSteps[i].lat - prevLat) * fraction,
-        lng: prevLng + (allSteps[i].lng - prevLng) * fraction,
-        routeDistMeters: nextThreshold,
-        routeTimeSec: Math.round(prevTime + stepTime * fraction)
-      });
-
-      nextThreshold += intervalMeters;
-    }
+  // ── Resolve locations ────────────────────────────────────────────────
+  let resolvedOrigin, resolvedDest;
+  try {
+    [resolvedOrigin, resolvedDest] = await Promise.all([
+      resolveLocation(origin),
+      resolveLocation(destination),
+    ]);
+  } catch (e) {
+    return { statusCode: 400, headers: HEADERS, body: JSON.stringify({ error: `Could not resolve locations: ${e.message}` }) };
   }
 
-  return points;
+  // ── Get route from Google Directions ─────────────────────────────────
+  let routePoints = [];
+  let totalDistanceMeters = 0;
+  let totalDurationSeconds = 0;
+  let routeLegs, routePolyline;
+  try {
+    const dirUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(resolvedOrigin)}&destination=${encodeURIComponent(resolvedDest)}&key=${GOOGLE_API_KEY}`;
+    const dirRes = await fetch(dirUrl);
+    const dirJson = await dirRes.json();
+    if (!dirJson.routes?.length) {
+      throw new Error(`${dirJson.status || "UNKNOWN"}: ${dirJson.error_message || "No routes returned. Try a more specific address."}`);
+    }
+    const route = dirJson.routes[0];
+    routeLegs = route.legs;
+    routePolyline = route.overview_polyline?.points || "";
+    totalDistanceMeters = route.legs.reduce((sum, leg) => sum + leg.distance.value, 0);
+    totalDurationSeconds = route.legs.reduce((sum, leg) => sum + leg.duration.value, 0);
+
+    // ~30 sample points for accurate charger-to-route distance matching
+    const sampleInterval = Math.max(10000, Math.round(totalDistanceMeters / 30));
+    routePoints = sampleRoutePoints(route, sampleInterval);
+  } catch (e) {
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Directions failed: ${e.message}` }) };
+  }
+
+  const rangeMi = VEHICLE_RANGE_MI[vehicle] || 210;
+  const batteryKwh = VEHICLE_BATTERY_KWH[vehicle] || 75;
+  const totalDistanceMi = totalDistanceMeters / 1609.344;
+  const totalMi = Math.round(totalDistanceMi);
+  const totalDriveMinutes = Math.round(totalDurationSeconds / 60);
+  const arrivalPct = Math.round((1 - totalDistanceMi / rangeMi) * 100);
+
+  // ── 1000-mile cap ───────────────────────────────────────────────────
+  if (totalMi > 1000) {
+    return {
+      statusCode: 200, headers: HEADERS,
+      body: JSON.stringify({
+        tooFar: true,
+        totalDistanceMi: totalMi,
+        totalDriveMinutes,
+        polyline: routePolyline,
+        message: `That's a ${totalMi}-mile trip — we're not quite ready for that yet. ChargeWell works best for trips under 1,000 miles. We're working on cross-country support.`,
+      }),
+    };
+  }
+
+  // ── No stop needed (arrive with 20%+ battery) ───────────────────────
+  if (arrivalPct >= 20) {
+    return handleNoStopNeeded(totalMi, arrivalPct, rangeMi, batteryKwh, totalDriveMinutes, routePolyline, routePoints, routeLegs, vehicle);
+  }
+
+  // ── Find DC fast chargers via NREL ──────────────────────────────────
+  let chargers = [];
+  try {
+    chargers = await findRouteChargers(routePoints, totalMi, totalDriveMinutes);
+  } catch (e) {
+    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: `Charger search failed: ${e.message}` }) };
+  }
+
+  if (!chargers.length) {
+    return { statusCode: 200, headers: HEADERS, body: JSON.stringify({ chargers: [], strategies: [], totalDistanceMi: totalMi, polyline: routePolyline, totalDriveMinutes }) };
+  }
+
+  // ── Grade chargers + generate strategies in parallel ─────────────────
+  const thinCoverageInfo = detectThinCoverage(chargers, totalMi);
+
+  const [graded, strategies] = await Promise.all([
+    Promise.all(chargers.map(c => gradeCharger(c, travellerType, vehicle, thinCoverageInfo))),
+    generateStrategies(chargers, origin, destination, totalMi, rangeMi, totalDriveMinutes, batteryKwh, travellerType, vehicle),
+  ]);
+
+  const gradedById = {};
+  graded.forEach(c => { gradedById[String(c.id)] = c; });
+
+  const strategiesWithGrades = strategies.map(s => {
+    const stops = (s.stopIds || []).map(id => gradedById[String(id)]).filter(Boolean);
+    stops.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
+    const timing = calculateStrategyTiming(stops, totalDriveMinutes, totalMi, rangeMi, batteryKwh);
+    return { ...s, stops, ...timing };
+  });
+
+  return {
+    statusCode: 200, headers: HEADERS,
+    body: JSON.stringify({
+      chargers: graded,
+      strategies: strategiesWithGrades,
+      totalDistanceMi: totalMi,
+      totalDriveMinutes,
+      polyline: routePolyline,
+    }),
+  };
+};
+
+// ── No-stop-needed response (with optional round-trip charger) ─────────
+
+async function handleNoStopNeeded(totalMi, arrivalPct, rangeMi, batteryKwh, totalDriveMinutes, routePolyline, routePoints, routeLegs, vehicle) {
+  const messages = [
+    `Your ${vehicleName(vehicle)} eats ${totalMi} miles for breakfast. You'll arrive with about ${arrivalPct}% battery — skip the stop and enjoy the drive.`,
+    `${totalMi} miles? That's a warm-up for your ${vehicleName(vehicle)}. You'll roll in with ~${arrivalPct}% battery. Save the charging for another day.`,
+    `Good news — your ${vehicleName(vehicle)} can do this ${totalMi}-mile trip on a single charge. You'll arrive with roughly ${arrivalPct}% left. More time for snacks at the destination.`,
+    `No pit stop required! At ${totalMi} miles, your ${vehicleName(vehicle)} will arrive with about ${arrivalPct}% battery to spare. That's what we call range confidence.`,
+  ];
+
+  const roundTripMi = totalMi * 2;
+  const roundTripArrival = Math.round((1 - roundTripMi / rangeMi) * 100);
+  let roundTripStop = null;
+
+  if (roundTripArrival < 15) {
+    roundTripStop = await findRoundTripCharger(routePoints, routeLegs, roundTripMi, rangeMi, batteryKwh);
+  }
+
+  return {
+    statusCode: 200, headers: HEADERS,
+    body: JSON.stringify({
+      noStopNeeded: true,
+      noStopMessage: messages[Math.floor(Math.random() * messages.length)],
+      totalDistanceMi: totalMi, arrivalPct, polyline: routePolyline, totalDriveMinutes,
+      roundTripNeedsCharge: roundTripArrival < 15,
+      roundTripStop,
+    }),
+  };
+}
+
+// Find a charger near the destination for the return trip
+async function findRoundTripCharger(routePoints, routeLegs, roundTripMi, rangeMi, batteryKwh) {
+  const destPoints = routePoints.slice(Math.max(0, routePoints.length - 3));
+  if (destPoints.length === 0 && routeLegs.length) {
+    const lastLeg = routeLegs[routeLegs.length - 1];
+    destPoints.push({ lat: lastLeg.end_location.lat, lng: lastLeg.end_location.lng });
+  }
+
+  try {
+    const nearResults = await Promise.all(destPoints.map(pt =>
+      fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=25&limit=3`)
+        .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
+    ));
+
+    const seen = new Set();
+    const nearChargers = [];
+    nearResults.flat().forEach(s => {
+      if (!s.id || seen.has(s.id) || !s.latitude || !s.longitude) return;
+      seen.add(s.id);
+      nearChargers.push(formatNrelStation(s));
+    });
+
+    if (!nearChargers.length) return null;
+
+    const charger = nearChargers[0];
+    const batteryAfterReturn = 1 - roundTripMi / rangeMi;
+    const chargeNeeded = Math.max(0, 0.15 - batteryAfterReturn);
+    const kwhNeeded = chargeNeeded * batteryKwh;
+    const effectiveKw = Math.min(MAX_CHARGE_RATE_KW, charger.kw);
+    const chargeMinutes = Math.max(8, Math.round((kwhNeeded / effectiveKw) * 60));
+    const homeArrivalPct = Math.round((batteryAfterReturn + chargeNeeded) * 100);
+
+    return {
+      ...charger,
+      chargeMinutes,
+      homeArrivalPct,
+      message: `Grab ${chargeMinutes} minutes at ${charger.name.split(' - ')[0].split(',')[0]} on your way back — you'll get home with about ${homeArrivalPct}% battery.`,
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+// ── NREL charger search along route ────────────────────────────────────
+
+async function findRouteChargers(routePoints, totalMi, totalDriveMinutes) {
+  // 6 evenly-spaced query points along the route
+  const queryPoints = [];
+  const numQueries = Math.min(6, routePoints.length);
+  for (let i = 0; i < numQueries; i++) {
+    const idx = Math.round(i * (routePoints.length - 1) / (numQueries - 1));
+    queryPoints.push(routePoints[idx]);
+  }
+
+  const results = await Promise.all(queryPoints.map(pt =>
+    fetch(`https://developer.nrel.gov/api/alt-fuel-stations/v1/nearest.json?api_key=${NREL_API_KEY}&fuel_type=ELEC&ev_charging_level=dc_fast&latitude=${pt.lat}&longitude=${pt.lng}&radius=20&limit=5`)
+      .then(r => r.json()).then(j => j.fuel_stations || []).catch(() => [])
+  ));
+
+  // Deduplicate and assign route distance by snapping to closest sample point
+  const chargerMap = {};
+  results.flat().forEach(s => {
+    if (!s.id || !s.latitude || !s.longitude || chargerMap[s.id]) return;
+
+    let bestDist = Infinity, bestPt = routePoints[0];
+    for (const pt of routePoints) {
+      const d = Math.pow(s.latitude - pt.lat, 2) + Math.pow(s.longitude - pt.lng, 2);
+      if (d < bestDist) { bestDist = d; bestPt = pt; }
+    }
+
+    // Filter chargers > 25 mi from route
+    const distFromRouteMi = Math.sqrt(bestDist) * 69;
+    if (distFromRouteMi > 25) return;
+
+    const station = formatNrelStation(s);
+    station.network = s.ev_network || "Unknown network";
+    station.distanceFromOriginMi = Math.round(bestPt.routeDistMeters / 1609.344);
+    station.driveMinutesFromOrigin = Math.round(bestPt.routeTimeSec / 60);
+    chargerMap[s.id] = station;
+  });
+
+  let chargers = Object.values(chargerMap);
+  chargers.sort((a, b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
+
+  // Filter out very early stops (20% of trip or 45 min, whichever is less)
+  const minDriveMinutes = Math.min(45, totalDriveMinutes * 0.2);
+  chargers = chargers.filter(c => c.driveMinutesFromOrigin >= minDriveMinutes);
+
+  // Segment-based thinning: pick highest-kW charger per route segment
+  const maxChargers = Math.max(10, Math.ceil(totalMi / 100));
+  if (chargers.length > maxChargers) {
+    const segmentMi = totalMi / maxChargers;
+    const kept = [];
+    for (let seg = 0; seg < maxChargers; seg++) {
+      const segStart = seg * segmentMi;
+      const segEnd = (seg + 1) * segmentMi;
+      const inSegment = chargers.filter(c => c.distanceFromOriginMi >= segStart && c.distanceFromOriginMi < segEnd);
+      if (inSegment.length > 0) {
+        inSegment.sort((a, b) => b.kw - a.kw);
+        kept.push(inSegment[0]);
+      }
+    }
+    chargers = kept;
+  }
+
+  return chargers;
 }
