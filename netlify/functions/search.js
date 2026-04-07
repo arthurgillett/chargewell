@@ -524,10 +524,14 @@ function buildAlgoStrategies(chargers, totalMi, rangeMi) {
   const moreStops = buildRoute(chargers, totalMi, rangeMi, 0.65);
 
   const strategies = [];
+  // Check if routes cover the full trip
+  const fewerCovers = fewerStops.length > 0 && coversRoute(fewerStops, chargers, totalMi, rangeMi);
+  const moreCovers = moreStops.length > 0 && coversRoute(moreStops, chargers, totalMi, rangeMi);
+
   if (fewerStops.length > 0) {
     strategies.push({
       name: "The Long Hauler",
-      tagline: fewerStops.length + " stops, maximize driving between charges",
+      tagline: fewerStops.length + " stops, maximize driving between charges" + (!fewerCovers ? " (partial — charger data limited in some areas)" : ""),
       emoji: "🛣️",
       recommended: true,
       stopIds: fewerStops
@@ -536,7 +540,7 @@ function buildAlgoStrategies(chargers, totalMi, rangeMi) {
   if (moreStops.length > 0 && moreStops.length !== fewerStops.length) {
     strategies.push({
       name: "The Easy Rider",
-      tagline: moreStops.length + " stops, shorter legs and more breaks",
+      tagline: moreStops.length + " stops, shorter legs and more breaks" + (!moreCovers ? " (partial — charger data limited in some areas)" : ""),
       emoji: "☀️",
       recommended: false,
       stopIds: moreStops
@@ -544,10 +548,18 @@ function buildAlgoStrategies(chargers, totalMi, rangeMi) {
   }
 
   if (!strategies.length) {
-    // Absolute fallback
     return [{ name: "The Route", tagline: "Best available stops", emoji: "⚡", recommended: true, stopIds: chargers.slice(0, 1).map(c => c.id) }];
   }
   return strategies;
+}
+
+function coversRoute(stopIds, chargers, totalMi, rangeMi) {
+  const chargerById = {};
+  chargers.forEach(c => { chargerById[String(c.id)] = c; });
+  const stops = stopIds.map(id => chargerById[String(id)]).filter(Boolean).sort((a,b) => a.distanceFromOriginMi - b.distanceFromOriginMi);
+  if (!stops.length) return false;
+  const lastStopMi = stops[stops.length - 1].distanceFromOriginMi;
+  return (totalMi - lastStopMi) <= rangeMi * 0.85;
 }
 
 async function gradeCharger(charger, travellerType, vehicle, thinCoverageInfo) {
