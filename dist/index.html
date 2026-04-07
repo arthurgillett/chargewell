@@ -66,20 +66,7 @@
     }
     .subtitle { font-size: 15px; color: #5F5E5A; line-height: 1.4; }
 
-    /* ── How it works strip ────────────────────────────────── */
-    .hiw-strip {
-      display: flex; align-items: center; gap: 4px;
-      padding: 10px 20px; margin: 12px 0 4px;
-    }
-    .hiw-step { display: flex; align-items: center; gap: 5px; flex: 1; }
-    .hiw-num {
-      width: 18px; height: 18px; border-radius: 50%;
-      background: #E8F7F1; color: #1D9E75;
-      font-size: 10px; font-weight: 600;
-      line-height: 18px; text-align: center; flex-shrink: 0;
-    }
-    .hiw-text { font-size: 11px; color: #888780; line-height: 1.2; }
-    .hiw-arrow { color: #d4d3ce; font-size: 10px; flex-shrink: 0; }
+
 
     /* ── Step content ──────────────────────────────────────── */
     .step-body { padding: 20px 20px 0; }
@@ -356,15 +343,6 @@
     <div class="header">
       <div class="brand">CHARGE WELL. EAT WELL. BE WELL.</div>
       <div class="title">Plan a drive you'll actually enjoy</div>
-      <div class="subtitle">Great routes aren't just about getting there — they're about the stops along the way. We build trips around chargers with real food, green space, and things to do while you charge.</div>
-    </div>
-
-    <div class="hiw-strip" id="hiw-strip">
-      <div class="hiw-step"><div class="hiw-num">1</div><div class="hiw-text">Plan your drive</div></div>
-      <div class="hiw-arrow">&rarr;</div>
-      <div class="hiw-step"><div class="hiw-num">2</div><div class="hiw-text">We build routes</div></div>
-      <div class="hiw-arrow">&rarr;</div>
-      <div class="hiw-step"><div class="hiw-num">3</div><div class="hiw-text">Pick your favorite</div></div>
     </div>
 
     <div class="progress-bar">
@@ -773,8 +751,6 @@ function showStep(n) {
   updateCTAState();
 
   // Hide how-it-works after step 1
-  var hiw = document.getElementById('hiw-strip');
-  if (hiw) hiw.style.display = n > 1 ? 'none' : '';
 }
 
 function updateCTAState() {
@@ -1041,41 +1017,18 @@ function renderRoutes() {
 
     var stopsLine = stops.length + ' stop' + (stops.length !== 1 ? 's' : '');
 
-    // Itinerary timeline
-    var itinHTML = '';
-    if (legs.length) {
-      itinHTML = '<div class="itinerary">';
-      legs.forEach(function (leg) {
-        var isDrive = leg.type === 'drive';
-        var dotColor = isDrive ? '#e0ded8' : '#1D9E75';
-        var label = isDrive
-          ? '<span class="itin-time">' + fmt(leg.minutes) + '</span> drive' + (leg.miles ? ' · ' + leg.miles + ' mi' : '')
-          : '<span class="itin-time">' + fmt(leg.minutes) + '</span> charging';
-        var detail = isDrive ? '' : '<div class="itin-detail">' + leg.label.replace('Charge at ', '') + '</div>';
-        itinHTML += '<div class="itin-segment">' +
-          '<div class="itin-dot" style="background:' + dotColor + '"></div>' +
-          '<div class="itin-label">' + label + '</div>' +
-          detail +
-        '</div>';
-      });
-      itinHTML += '</div>';
-    }
-
     html += '<div class="route-card' + (s.recommended ? ' recommended' : '') + '" onclick="openRouteDetail(' + i + ')">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">' +
         '<span style="font-size:16px;font-weight:600;color:#2C2C2A">' + s.name + '</span>' +
         (s.recommended ? '<span class="recommended-tag">RECOMMENDED</span>' : '') +
       '</div>' +
-      '<p style="font-size:14px;color:#5F5E5A;line-height:1.4;margin-bottom:6px">' + s.tagline + '</p>' +
-      (formData.connector === 'ccs' ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;margin-bottom:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> CCS adapter needed</div>' : '') +
+      '<p style="font-size:13px;color:#5F5E5A;line-height:1.3;margin-bottom:6px">' + s.tagline + '</p>' +
+      (formData.connector === 'ccs' ? '<div style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:8px;background:#FEF3C7;color:#92400E;margin-bottom:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> CCS adapter needed</div>' : '') +
       (stopScores.length ? '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;font-size:13px">' + stopScores.join('') + '</div>' : '') +
       (total ? '<div class="timing-row">' +
         '<span class="timing-pill timing-total">' + fmt(total) + ' total</span>' +
-        '<span class="timing-pill timing-drive">' + fmt(total - charge) + ' driving</span>' +
         '<span class="timing-pill timing-charge">' + fmt(charge) + ' charging</span>' +
       '</div>' : '') +
-      routeSVG(stops, null) +
-      itinHTML +
     '</div>';
   });
 
