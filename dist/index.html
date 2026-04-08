@@ -576,8 +576,106 @@ var VEHICLES = [
   { id: 'lucid_air',            label: 'Lucid Air Grand Touring' },
   { id: 'cadillac_lyriq',       label: 'Cadillac Lyriq' },
   { id: 'tesla_cybertruck',     label: 'Tesla Cybertruck' },
-  { id: 'nissan_ariya',         label: 'Ariya' }
+  { id: 'nissan_ariya',         label: 'Nissan Ariya' }
 ];
+
+// Chain restaurant → delivery app deep links
+// DoorDash: doordash://store/{slug}  /  https://www.doordash.com/store/{slug}
+// UberEats: ubereats://store/{id}    /  https://www.ubereats.com/store/{slug}
+// Placeholder affiliate IDs — replace with real ones once approved
+var CHAIN_LINKS = {
+  'shake shack':    { doordash: 'shake-shack', ubereats: 'shake-shack' },
+  'starbucks':      { doordash: 'starbucks', ubereats: 'starbucks' },
+  'chipotle':       { doordash: 'chipotle-mexican-grill', ubereats: 'chipotle-mexican-grill' },
+  'panera':         { doordash: 'panera-bread', ubereats: 'panera-bread' },
+  'panera bread':   { doordash: 'panera-bread', ubereats: 'panera-bread' },
+  'chick-fil-a':    { doordash: 'chick-fil-a', ubereats: 'chick-fil-a' },
+  "mcdonald's":     { doordash: 'mcdonalds', ubereats: 'mcdonalds' },
+  'mcdonalds':      { doordash: 'mcdonalds', ubereats: 'mcdonalds' },
+  'burger king':    { doordash: 'burger-king', ubereats: 'burger-king' },
+  "wendy's":        { doordash: 'wendys', ubereats: 'wendys' },
+  'wendys':         { doordash: 'wendys', ubereats: 'wendys' },
+  'dunkin':         { doordash: 'dunkin', ubereats: 'dunkin' },
+  "dunkin'":        { doordash: 'dunkin', ubereats: 'dunkin' },
+  'taco bell':      { doordash: 'taco-bell', ubereats: 'taco-bell' },
+  'five guys':      { doordash: 'five-guys', ubereats: 'five-guys' },
+  'sweetgreen':     { doordash: 'sweetgreen', ubereats: 'sweetgreen' },
+  'subway':         { doordash: 'subway', ubereats: 'subway' },
+  'panda express':  { doordash: 'panda-express', ubereats: 'panda-express' },
+  'popeyes':        { doordash: 'popeyes', ubereats: 'popeyes' },
+  "popeye's":       { doordash: 'popeyes', ubereats: 'popeyes' },
+  'jersey mikes':   { doordash: 'jersey-mikes', ubereats: 'jersey-mikes' },
+  "jersey mike's":  { doordash: 'jersey-mikes', ubereats: 'jersey-mikes' },
+  'wawa':           { doordash: 'wawa', ubereats: 'wawa' },
+  'sheetz':         { doordash: 'sheetz' },
+  'chilis':         { doordash: 'chilis', ubereats: 'chilis' },
+  "chili's":        { doordash: 'chilis', ubereats: 'chilis' },
+  'applebees':      { doordash: 'applebees', ubereats: 'applebees' },
+  "applebee's":     { doordash: 'applebees', ubereats: 'applebees' },
+  'ihop':           { doordash: 'ihop', ubereats: 'ihop' },
+  "denny's":        { doordash: 'dennys', ubereats: 'dennys' },
+  'dennys':         { doordash: 'dennys', ubereats: 'dennys' },
+  'cracker barrel': { doordash: 'cracker-barrel' },
+  'sonic':          { doordash: 'sonic-drive-in' },
+  'dominos':        { doordash: 'dominos', ubereats: 'dominos' },
+  "domino's":       { doordash: 'dominos', ubereats: 'dominos' },
+  'pizza hut':      { doordash: 'pizza-hut', ubereats: 'pizza-hut' },
+  "arby's":         { doordash: 'arbys', ubereats: 'arbys' },
+  'arbys':          { doordash: 'arbys', ubereats: 'arbys' },
+};
+
+// Find delivery links for text that mentions restaurant names
+function findOrderLinks(text) {
+  if (!text) return [];
+  var lower = text.toLowerCase();
+  var found = [];
+  var seen = {};
+  Object.keys(CHAIN_LINKS).forEach(function (name) {
+    if (lower.indexOf(name) !== -1 && !seen[CHAIN_LINKS[name].doordash]) {
+      seen[CHAIN_LINKS[name].doordash] = true;
+      var displayName = name.charAt(0).toUpperCase() + name.slice(1);
+      // Clean up display name
+      if (name === "mcdonald's" || name === 'mcdonalds') displayName = "McDonald's";
+      else if (name === "dunkin'" || name === 'dunkin') displayName = "Dunkin'";
+      else if (name === 'panera bread' || name === 'panera') displayName = 'Panera';
+      else if (name === 'shake shack') displayName = 'Shake Shack';
+      else if (name === 'chick-fil-a') displayName = 'Chick-fil-A';
+      else if (name === 'five guys') displayName = 'Five Guys';
+      found.push({ name: displayName, links: CHAIN_LINKS[name] });
+    }
+  });
+  return found;
+}
+
+// Render order-ahead buttons for a stop
+function orderLinksHTML(foodText, coffeeText, lat, lng) {
+  var allText = (foodText || '') + ' ' + (coffeeText || '');
+  var chains = findOrderLinks(allText);
+  if (!chains.length) {
+    // No chain match — show Google Maps "See nearby food" link
+    return '<div style="margin-top:8px">' +
+      '<a href="https://www.google.com/maps/search/restaurants/@' + lat + ',' + lng + ',16z" target="_blank" rel="noopener" ' +
+        'style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1D9E75;text-decoration:none;font-weight:500">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+        'See nearby food on Maps</a></div>';
+  }
+
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+  chains.forEach(function (chain) {
+    if (chain.links.doordash) {
+      html += '<a href="https://www.doordash.com/search/store/' + chain.links.doordash + '/" target="_blank" rel="noopener" ' +
+        'style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:6px 12px;border-radius:10px;background:#FF3008;color:#fff;text-decoration:none;-webkit-tap-highlight-color:transparent">' +
+        'Order ' + chain.name + '</a>';
+    }
+    if (chain.links.ubereats) {
+      html += '<a href="https://www.ubereats.com/search?q=' + encodeURIComponent(chain.name) + '" target="_blank" rel="noopener" ' +
+        'style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;padding:6px 12px;border-radius:10px;background:#06C167;color:#fff;text-decoration:none;-webkit-tap-highlight-color:transparent">' +
+        'Uber Eats</a>';
+    }
+  });
+  html += '</div>';
+  return html;
+}
 
 /* ══════════════════════════════════════════════════════════════
    HELPER / UTILITY FUNCTIONS
@@ -996,7 +1094,41 @@ function renderRoutes() {
   currentStops = (strategies[recIdx].stops || []).slice()
     .sort(function (a, b) { return a.distanceFromOriginMi - b.distanceFromOriginMi; });
 
-  var html = '<div class="step-label" style="margin-bottom:8px">WAYS TO MAKE THIS DRIVE</div>';
+  // "Just pick the one with..." quick pick
+  // Find the best food mention across all strategies
+  var quickPickHTML = '';
+  if (strategies.length > 1) {
+    var bestFoodStop = null;
+    var bestFoodStratIdx = 0;
+    strategies.forEach(function (s, si) {
+      (s.stops || []).forEach(function (st) {
+        if (!st.food) return;
+        var chains = findOrderLinks(st.food + ' ' + (st.coffee || ''));
+        var foodScore = (st.foodTier === 'local' ? 3 : st.foodTier === 'mid' ? 2 : 1);
+        // Boost if it has a recognizable chain people love
+        if (chains.length) foodScore += 1;
+        if (!bestFoodStop || foodScore > bestFoodStop._foodScore || (foodScore === bestFoodStop._foodScore && (st.score || 0) > (bestFoodStop.score || 0))) {
+          bestFoodStop = st;
+          bestFoodStop._foodScore = foodScore;
+          bestFoodStratIdx = si;
+        }
+      });
+    });
+    if (bestFoodStop && bestFoodStop.food) {
+      // Extract the first recognizable food name for the quip
+      var chains = findOrderLinks(bestFoodStop.food + ' ' + (bestFoodStop.coffee || ''));
+      var foodName = chains.length ? chains[0].name : (bestFoodStop.food.split('—')[0].split(',')[0].split('–')[0].trim());
+      if (foodName.length > 25) foodName = foodName.slice(0, 25).trim();
+      quickPickHTML = '<div style="background:#FAFDF9;border:1.5px solid #E8F7F1;border-radius:12px;padding:12px 16px;margin-bottom:12px;cursor:pointer;-webkit-tap-highlight-color:transparent" onclick="openRouteDetail(' + bestFoodStratIdx + ')">' +
+        '<div style="font-size:14px;color:#2C2C2A;line-height:1.4">' +
+          'Just pick the one near <span style="font-weight:600;color:#1D9E75">' + foodName + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#888780;margin-top:2px">Skip the comparison, go straight to the good food &rarr;</div>' +
+      '</div>';
+    }
+  }
+
+  var html = quickPickHTML + '<div class="step-label" style="margin-bottom:8px">WAYS TO MAKE THIS DRIVE</div>';
 
   strategies.forEach(function (s, i) {
     var stops  = s.stops || [];
@@ -1111,7 +1243,9 @@ function showStopDetail(expandIdx) {
         var tier = c.foodTier || 'chain';
         html += '<div class="detail-section"><div class="detail-section-label">FOOD</div>' +
           '<span class="food-badge food-' + tier + '">' + (tier === 'local' ? 'local favorite' : tier === 'mid' ? 'regional' : 'chain') + '</span> ' +
-          '<span class="detail-section-text">' + c.food + '</span></div>';
+          '<span class="detail-section-text">' + c.food + '</span>' +
+          orderLinksHTML(c.food, c.coffee, c.lat, c.lng) +
+        '</div>';
       }
       if (c.coffee) html += '<div class="detail-section"><div class="detail-section-label">COFFEE</div><div class="detail-section-text">' + c.coffee + '</div></div>';
       if (c.outdoors) html += '<div class="detail-section"><div class="detail-section-label">OUTDOORS</div><div class="detail-section-text">' + c.outdoors + '</div></div>';
